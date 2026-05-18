@@ -1,0 +1,6 @@
+output/*
+exploreOutput/*
+.claude/settings.json
+.claude/settings.local.json
+.claude/CLAUDE.md
+.playwright-mcp
