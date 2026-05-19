@@ -19,7 +19,9 @@ triggers:
 - 探索记录（输入）：`~/e2eProject/exploreOutput/{日期时间文件夹}/explore_record.md`
 - 用例模板（参考）：`~/e2eProject/referenceDocument/用例模板.xlsx`
 - 测试点需求（参考）：`~/e2eProject/referenceDocument/testPointsRequirement.md`
-- 测试用例（输出）：`~/e2eProject/exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.xlsx`
+- 测试用例（输出）：
+  - Excel格式：`~/e2eProject/exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.xlsx`
+  - Markdown格式：`~/e2eProject/exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.md`
 
 ## 输入
 
@@ -81,16 +83,34 @@ triggers:
 **七、编辑表单** - 回填验证1条 + 清空非必填1条 + 关闭/保存/取消各1条 + 附件回显1条
 **八、详情表单** - 字段值验证1条 + 图片预览/附件下载各1条 + TAB切换1条 + 空值/长值显示各1条
 
-### 3. 导出Excel
+### 3. 导出Excel和Markdown
 
-- 使用export-excel skill或Python脚本将测试用例导出为Excel
+- 使用export-excel skill或Python脚本将测试用例导出为Excel和Markdown
 - Excel格式严格对齐 `用例模板.xlsx` 的列结构（用例编号、所属产品、所属模块、用例名称、前置条件、步骤、预期）
-- 文件名格式：`{YYYYMMDD_HHMMSS}_测试用例.xlsx`
+- Markdown格式包含相同内容，用于test-script-generate技能的输入
+- 文件名格式：`{YYYYMMDD_HHMMSS}_测试用例.xlsx` 和 `{YYYYMMDD_HHMMSS}_测试用例.md`
 - 保存到输入文件所在的同一文件夹：`~/e2eProject/exploreOutput/{用户选择的文件夹}/`
+
+#### Markdown文件格式要求
+
+Markdown文件应包含测试用例表格，格式示例：
+
+```markdown
+# 测试用例
+
+## 用例列表
+
+| 用例编号 | 所属产品 | 所属模块 | 用例名称 | 前置条件 | 步骤 | 预期 |
+|---------|---------|---------|---------|---------|-----|-----|
+| TC-MENU-001 | 产品名称 | /一级菜单/二级菜单 | 【子模块】验证xxx | 条件1 | 1. 步骤1\n2. 步骤2 | 1. 预期1\n2. 预期2 |
+```
+
+表格列依次为：用例编号、所属产品、所属模块、用例名称、前置条件、步骤、预期
 
 ## 输出
 
 - 测试用例Excel：`~/e2eProject/exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.xlsx`
+- 测试用例Markdown：`~/e2eProject/exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.md`（与Excel内容相同）
 - 输出用例统计摘要：用例总数、各模块用例数、是否覆盖全部测试点
 
 ## 注意事项

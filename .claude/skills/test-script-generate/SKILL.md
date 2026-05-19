@@ -14,7 +14,9 @@ triggers:
 
 ## 输入
 
-- **测试用例.md**：位于 `./output/{当前日期}/测试用例.md`，包含结构化测试用例
+- **测试用例.md**：从以下位置搜索并由用户选择：
+  - `./output/{当前日期}/` 文件夹下的 `.md` 文件
+  - `./exploreOutput/{当前日期}/` 文件夹下的 `.md` 文件
 - **测试脚本模板**：`./referenceDocument/testScriptTemplate.md`，定义脚本编写规范
 - **输出目录**：`./output/{当前日期}/`（与测试用例.md同级目录，"当前日期"格式为YYYY-MM-DD，如2026-05-15）
 
@@ -30,9 +32,35 @@ triggers:
 
 ## 处理流程
 
-### 第一步：读取测试用例文件
+### 第一步：搜索并选择测试用例文件
 
-读取 `./output/{当前日期}/测试用例.md`，解析用例表格，提取：
+执行以下命令搜索可用的 `.md` 文件：
+
+```bash
+# 搜索 output 目录下当前日期的 md 文件
+find ./output -path "*/$(date +%Y-%m-%d)/*.md" -type f 2>/dev/null
+
+# 搜索 exploreOutput 目录下当前日期的 md 文件
+find ./exploreOutput -path "*/*$(date +%Y%m%d)*/*.md" -type f 2>/dev/null
+```
+
+使用 AskUserQuestion 工具让用户选择使用哪个文件：
+
+```python
+questions = [
+    {
+        "header": "选择用例文件",
+        "question": "请选择要使用的测试用例文件：",
+        "multiSelect": False,
+        "options": [
+            {"label": "文件1路径", "description": "文件描述"},
+            {"label": "文件2路径", "description": "文件描述"},
+        ]
+    }
+]
+```
+
+读取用户选择的测试用例 `.md` 文件，解析用例表格，提取：
 - 模块路径（用于确定端类型和菜单结构）
 - 用例编号、名称、步骤、预期
 - 用例类型（正向/反向/UI验证）
