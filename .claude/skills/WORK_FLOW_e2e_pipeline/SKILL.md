@@ -31,7 +31,7 @@ triggers:
   1. 要求子会话先读取对应技能的 SKILL.md 获取完整处理规则
   2. 明确告知输入文件路径，要求子会话读取该文件作为输入
   3. 明确要求将结果写入指定的输出文件
-  4. 工作目录：`/home/mxr/e2eProject`
+  4. 工作目录：`.`
 
 ### 子会话 prompt 模板
 
@@ -59,13 +59,13 @@ triggers:
 ```
 请按以下要求执行任务：
 
-1. 先读取技能定义文件：/home/mxr/e2eProject/.claude/skills/requirement-split/SKILL.md，理解其中的处理规则和输出格式
+1. 先读取技能定义文件：./.claude/skills/requirement-split/SKILL.md，理解其中的处理规则和输出格式
 2. 对以下需求内容进行拆分：
 
 {用户传入的需求内容}
 
 3. 严格按照技能定义的处理规则处理
-4. 将结果写入输出文件：/home/mxr/e2eProject/output/{当前日期}/功能点列表.md（如目录不存在则先创建）
+4. 将结果写入输出文件：./output/{当前日期}/功能点列表.md（如目录不存在则先创建）
 ```
 
 ### 步骤2：测试点提取
@@ -79,11 +79,11 @@ triggers:
 ```
 请按以下要求执行任务：
 
-1. 先读取技能定义文件：/home/mxr/e2eProject/.claude/skills/test-point-extract/SKILL.md，理解其中的处理规则和输出格式
-2. 读取输入文件：/home/mxr/e2eProject/output/{当前日期}/功能点列表.md
-3. 读取参考文件：/home/mxr/e2eProject/referenceDocument/testPointsRequirement.md
+1. 先读取技能定义文件：./.claude/skills/test-point-extract/SKILL.md，理解其中的处理规则和输出格式
+2. 读取输入文件：./output/{当前日期}/功能点列表.md
+3. 读取参考文件：./referenceDocument/testPointsRequirement.md
 4. 严格按照技能定义的处理规则，基于功能点列表和参考文件提取测试点
-5. 将结果写入输出文件：/home/mxr/e2eProject/output/{当前日期}/测试点清单.md（如目录不存在则先创建）
+5. 将结果写入输出文件：./output/{当前日期}/测试点清单.md（如目录不存在则先创建）
 ```
 
 ### 步骤3：测试点评审
@@ -97,12 +97,12 @@ triggers:
 ```
 请按以下要求执行任务：
 
-1. 先读取技能定义文件：/home/mxr/e2eProject/.claude/skills/test-point-review/SKILL.md，理解其中的处理规则和输出格式
-2. 读取输入文件：/home/mxr/e2eProject/output/{当前日期}/测试点清单.md
-3. 读取功能点列表用于交叉比对：/home/mxr/e2eProject/output/{当前日期}/功能点列表.md
-4. 读取参考文件：/home/mxr/e2eProject/referenceDocument/testPointsRequirement.md
+1. 先读取技能定义文件：./.claude/skills/test-point-review/SKILL.md，理解其中的处理规则和输出格式
+2. 读取输入文件：./output/{当前日期}/测试点清单.md
+3. 读取功能点列表用于交叉比对：./output/{当前日期}/功能点列表.md
+4. 读取参考文件：./referenceDocument/testPointsRequirement.md
 5. 严格按照技能定义的处理规则进行评审
-6. 将结果写入输出文件：/home/mxr/e2eProject/output/{当前日期}/测试点评审报告.md（如目录不存在则先创建）
+6. 将结果写入输出文件：./output/{当前日期}/测试点评审报告.md（如目录不存在则先创建）
 ```
 
 ### 步骤4：用例生成
@@ -116,11 +116,11 @@ triggers:
 ```
 请按以下要求执行任务：
 
-1. 先读取技能定义文件：/home/mxr/e2eProject/.claude/skills/test-case-generate/SKILL.md，理解其中的处理规则和输出格式
-2. 读取输入文件：/home/mxr/e2eProject/output/{当前日期}/测试点清单.md
-3. 读取参考文件：/home/mxr/e2eProject/referenceDocument/testPointsRequirement.md
+1. 先读取技能定义文件：./.claude/skills/test-case-generate/SKILL.md，理解其中的处理规则和输出格式
+2. 读取输入文件：./output/{当前日期}/测试点清单.md
+3. 读取参考文件：./referenceDocument/testPointsRequirement.md
 4. 严格按照技能定义的处理规则，基于测试点清单和参考文件生成测试用例
-5. 将结果写入输出文件：/home/mxr/e2eProject/output/{当前日期}/测试用例.md（如目录不存在则先创建）
+5. 将结果写入输出文件：./output/{当前日期}/测试用例.md（如目录不存在则先创建）
 ```
 
 ### 步骤5：导出Excel
@@ -133,10 +133,10 @@ triggers:
 ```
 请按以下要求执行任务：
 
-1. 先读取技能定义文件：/home/mxr/e2eProject/.claude/skills/export-excel/SKILL.md，理解其中的处理规则和输出格式
-2. 读取输入文件：/home/mxr/e2eProject/output/{当前日期}/测试用例.md
+1. 先读取技能定义文件：./.claude/skills/export-excel/SKILL.md，理解其中的处理规则和输出格式
+2. 读取输入文件：./output/{当前日期}/测试用例.md
 3. 严格按照技能定义的处理规则，将测试用例导出为Excel文件
-4. 将结果写入输出文件：/home/mxr/e2eProject/output/{当前日期}/testcases_{当前日期}.xlsx
+4. 将结果写入输出文件：./output/{当前日期}/testcases_{当前日期}.xlsx
 ```
 
 ## 流程控制规则
