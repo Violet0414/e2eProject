@@ -10,7 +10,12 @@ triggers:
 
 # 测试脚本生成
 
-将测试用例.md转化为符合ms-service-playwright框架规范的自动化测试脚本，严格遵循testScriptTemplate.md中定义的模板结构和编码规范。
+将测试用例.md转化为符合 e2e_runner 项目规范的自动化测试脚本，严格遵循testScriptTemplate.md中定义的模板结构和编码规范。
+
+## 核心要求
+
+1. **输出目录结构与 e2e_runner 兼容**：生成的测试脚本必须输出到 `output/{日期}/tests/` 目录，供 e2e_runner 的 pytest 运行器读取执行
+2. **跳转路径处理**：当测试用例需要跳转到非默认页面时，必须从测试用例中读取跳转路径（`route_path`）并写入测试数据，测试用例执行时使用该路径进行导航
 
 ## 输入
 
@@ -29,6 +34,66 @@ triggers:
 | 1 | 页面对象 | `output/{当前日期}/pages/{端目录}/{module_name}.py` |
 | 2 | 测试数据 | `output/{当前日期}/datas/{端目录}/{module_name}_data.py` |
 | 3 | 测试用例 | `output/{当前日期}/tests/{端目录}/test_{module_name}.py` |
+
+**重要**：测试用例文件 `test_{module_name}.py` 最终被 e2e_runner 的 pytest 运行器在 `output/{日期}/tests/` 目录下执行，因此必须在文件开头正确设置 PYTHONPATH 导入路径。
+
+## 跳转路径判断与处理
+
+### 判断逻辑
+
+在解析测试用例时，根据以下条件判断测试是否需要跳转路径：
+
+| 条件 | 需要跳转路径 | 说明 |
+|------|-------------|------|
+| 测试用例中包含 `route_path` 字段 | 是 | 直接使用用例中的路径 |
+| 测试用例包含特定模块URL | 是 | 如 `/business/publicFacilities/chargingPile` |
+| 页面探索记录中有页面URL | 是 | 从探索记录的"页面URL"字段提取 |
+| 无上述信息 | 否 | 使用默认菜单导航 `goto_module()` |
+
+### 跳转路径读取
+
+从测试用例文件中提取跳转路径，优先级：
+
+1. **测试用例表格中的 `route_path` 字段**（显式声明）
+2. **测试用例表格中的 `页面URL` 或 `URL` 字段**
+3. **探索记录中的"页面URL"字段**
+
+### 跳转路径写入
+
+当需要跳转路径时，在测试数据字典中添加 `route_path` 字段：
+
+```python
+{
+    "title": "正向-完整填写提交成功",
+    "type": "positive",
+    "expect_success": True,
+    "route_path": "/business/publicFacilities/chargingPile",  # 跳转路径
+    "data": {
+        "charging_pile_name": f"测试充电桩-{fake_data.random_4bit_str()}",
+        # ...
+    }
+}
+```
+
+### 测试用例中使用跳转路径
+
+当测试数据包含 `route_path` 时，测试用例使用 `navigate_to()` 而非 `goto_module()`：
+
+```python
+def test_charging_pile_add(self, test_case):
+    """充电桩新增测试"""
+    test_data = test_case["data"]
+    route_path = test_case.get("route_path")
+
+    with allure.step("进入充电桩页面"):
+        if route_path:
+            # 使用URL直接跳转（绕过菜单导航）
+            self.charging_pile_page.navigate_to(route_path)
+        else:
+            # 使用默认菜单导航
+            self.charging_pile_page.goto_module()
+        self.charging_pile_page.page.reload()
+```
 
 ## 处理流程
 
@@ -135,10 +200,19 @@ mkdir -p output/{当前日期}/tests/citizen
 | `title` | str | 是 | 用例中文标题，格式：`类型-场景描述`，如 `冒烟-完整填写`、`正向-只填必填`、`反向-名称为空` |
 | `type` | str | 是 | 可选值：`smoke` / `positive` / `negative` |
 | `expect_success` | bool | 是 | 正向：`True`，反向：`False` |
+| `route_path` | str | 否 | 跳转路径，如测试需要跳转到非默认页面时填写。e2e_runner 执行时使用 `navigate_to(route_path)` 代替 `goto_module()` |
 | `data` | dict | 是 | 所有业务字段放在此字典内 |
 | `validation_info` | dict | 反向必填 | 仅在反向测试（字段为空/格式错误）时使用 |
 
-5. **`validation_info` 字典结构**（反向测试专用）：
+5. **`route_path` 字段说明**：
+
+| 场景 | 写法 | 说明 |
+|------|------|------|
+| 使用菜单导航（默认） | 不填或 `None` | 测试用例使用 `goto_module()` 通过菜单导航 |
+| 直接URL跳转 | `/business/xxx/yyy` | 测试用例使用 `navigate_to(route_path)` 直接跳转到指定URL |
+| 同模块内跳转 | `None` | 同一模块内的测试不需要跳转路径 |
+
+6. **`validation_info` 字典结构**（反向测试专用）：
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
@@ -146,7 +220,7 @@ mkdir -p output/{当前日期}/tests/citizen
 | `expected_error_text` | str | 是 | 预期的错误提示文本 |
 | `trigger` | str | 是 | `"blur"`（失焦）/ `"submit"`（提交）/ `"upload"`（上传） |
 
-6. **数据值约定**：
+7. **数据值约定**：
 
 | 场景 | 写法 |
 |------|------|
@@ -195,7 +269,27 @@ mkdir -p output/{当前日期}/tests/citizen
    @pytest.mark.parametrize("test_case", {ENTITY}_ADD_TEST_DATA, ids=lambda x: x["title"])
    def test_{entity}_add(self, test_case):
    ```
-   - 进入页面并reload → 填写信息 → 填写附件 → 判断：有validation_info则调用 `_validate_field(test_case)`，否则调用 `_handle_normal_test(test_case)`
+   - **关键**：从 `test_case` 中获取 `route_path`，判断是否需要跳转 → 进入页面并reload → 填写信息 → 填写附件 → 判断：有validation_info则调用 `_validate_field(test_case)`，否则调用 `_handle_normal_test(test_case)`
+
+**跳转路径处理逻辑**：
+```python
+def test_{entity}_add(self, test_case):
+    """{实体中文名}新增测试"""
+    test_data = test_case["data"]
+    route_path = test_case.get("route_path")  # 获取跳转路径
+    validation_info = test_case.get("validation_info")
+
+    with allure.step("进入{模块中文名}页面"):
+        if route_path:
+            # 使用URL直接跳转（绕过菜单导航）
+            self.{entity_lower}_page.navigate_to(route_path)
+        else:
+            # 使用默认菜单导航
+            self.{entity_lower}_page.goto_module()
+        self.{entity_lower}_page.page.reload()
+    
+    # ... 后续步骤
+```
 
 #### 3.3.2 不使用 ValidationMixin 的简单测试模板（适用于简单CRUD场景）
 
@@ -278,6 +372,7 @@ class Test{PageClassName}(ValidationMixin):
 | `{主键字段}` | 测试数据中的主键字段名 | `case_title` |
 | `{param_list}` | add方法的参数列表 | `case_title, area_option, case_type_option` |
 | `{param_docs}` | 参数文档 | `case_title: 案件标题, area_option: 所属区域选项` |
+| `{route_path}` | 跳转路径（URL路径） | `/business/publicFacilities/chargingPile` |
 
 ## 编码规范
 
@@ -320,6 +415,8 @@ class Test{PageClassName}(ValidationMixin):
 - fixture 选用根据端类型确定
 - 涉及字段校验的测试类必须继承 ValidationMixin 并实现三个验证方法
 - 简单CRUD场景使用不继承 ValidationMixin 的简单测试模板
+- **跳转路径**：必须从测试用例中提取 `route_path` 或 `页面URL` 字段，当存在时写入测试数据，测试用例中使用 `navigate_to(route_path)` 代替默认的菜单导航
+- **e2e_runner 兼容性**：生成的测试脚本放在 `output/{日期}/tests/` 目录，conftest.py 由 e2e_runner 自动复制，测试脚本只需正确设置导入路径
 
 ## 持久化
 
@@ -338,3 +435,4 @@ class Test{PageClassName}(ValidationMixin):
       └── {端目录}/
           └── test_{module_name}.py
   ```
+- **重要**：`output/{当前日期}/tests/` 目录下的测试脚本由 e2e_runner 的 pytest 运行器执行，conftest.py 由 e2e_runner 自动复制到该目录，无需手动管理

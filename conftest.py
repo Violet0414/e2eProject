@@ -49,20 +49,29 @@ def admin_page(browser: Browser):
     )
     page = context.new_page()
 
+    # 登录凭证：优先使用环境变量，其次使用 settings 默认值
+    login_username = os.environ.get('E2E_LOGIN_USERNAME') or settings.current_account_config.username
+    login_password = os.environ.get('E2E_LOGIN_PASSWORD') or settings.current_account_config.password
+    login_sms_code = os.environ.get('E2E_LOGIN_SMS_CODE') or settings.current_account_config.sms_code
+
+    # 登录 URL：优先使用环境变量，其次使用 settings 默认值
+    base_url = os.environ.get('E2E_BASE_URL') or settings.platform_side_url
+    login_url_path = os.environ.get('E2E_LOGIN_URL') or settings.current_env_config.platform_side.login_url
+    login_url = f"{base_url}{login_url_path}"
+
     try:
-        login_url = f"{settings.platform_side_url}{settings.current_env_config.platform_side.login_url}"
         logs.info(f"正在打开登录页: {login_url}")
         page.goto(login_url)
         page.wait_for_load_state("networkidle")
 
         page.wait_for_timeout(1000)
 
-        page.fill("input[placeholder='账号'], input[placeholder*='账号']", settings.current_account_config.username)
+        page.fill("input[placeholder='账号'], input[placeholder*='账号']", login_username)
         page.wait_for_timeout(300)
-        page.fill("input[placeholder='密码'], input[placeholder*='密码']", settings.current_account_config.password)
+        page.fill("input[placeholder='密码'], input[placeholder*='密码']", login_password)
         page.wait_for_timeout(300)
         # 填写短信验证码
-        page.fill("input[placeholder='请输入验证码']", settings.current_account_config.sms_code)
+        page.fill("input[placeholder='请输入验证码']", login_sms_code)
         page.wait_for_timeout(300)
         page.click("button:has-text('登录')")
         page.wait_for_load_state("networkidle")

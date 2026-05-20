@@ -1,72 +1,18 @@
 """自动化测试运行器主入口"""
 import argparse
 import sys
-import shutil
+import os
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+# e2e_runner 目录路径
+E2E_RUNNER_DIR = Path(__file__).parent
+sys.path.insert(0, str(E2E_RUNNER_DIR))
 
 from config.settings import settings
 from common.logger import logs
 from common.test_runner import TestRunner
 from result_writer import ResultWriter
-
-
-def ensure_output_structure(output_base: Path):
-    """确保 output 目录结构完整"""
-    # 创建必要的目录和 __init__.py 文件
-    for dir_path in [
-        output_base / "pages",
-        output_base / "pages" / "admin",
-        output_base / "datas",
-        output_base / "datas" / "admin",
-        output_base / "common",
-        output_base / "config",
-    ]:
-        dir_path.mkdir(parents=True, exist_ok=True)
-        init_file = dir_path / "__init__.py"
-        if not init_file.exists():
-            init_file.touch()
-
-    # 复制 base_page.py 到 output/pages/ 目录
-    # 因为测试脚本中的页面对象依赖它
-    src_base_page = Path(__file__).parent / "pages" / "base_page.py"
-    dst_base_page = output_base / "pages" / "base_page.py"
-    if src_base_page.exists() and not dst_base_page.exists():
-        shutil.copy(src_base_page, dst_base_page)
-        logs.info(f"已创建 base_page: {dst_base_page}")
-
-    # 复制 conftest.py 到 output/tests/ 目录
-    # 因为测试脚本依赖 admin_page 等 fixture
-    src_conftest = Path(__file__).parent / "conftest.py"
-    dst_conftest = output_base / "tests" / "conftest.py"
-    if src_conftest.exists():
-        shutil.copy(src_conftest, dst_conftest)
-        logs.info(f"已复制 conftest.py: {dst_conftest}")
-
-    # 复制 config 模块到 output/config/ 目录
-    # 因为 conftest.py 中的 fixture 依赖 config.settings
-    src_config = Path(__file__).parent / "config"
-    dst_config = output_base / "config"
-    if src_config.exists():
-        for py_file in src_config.glob("*.py"):
-            if py_file.name != "__init__.py":
-                dst_file = dst_config / py_file.name
-                if not dst_file.exists():
-                    shutil.copy(py_file, dst_file)
-        logs.info(f"已同步 config 模块到 {dst_config}")
-
-    # 复制 common 模块到 output/common/ 目录
-    src_common = Path(__file__).parent / "common"
-    dst_common = output_base / "common"
-    if src_common.exists():
-        for py_file in src_common.glob("*.py"):
-            if py_file.name != "__init__.py":
-                dst_file = dst_common / py_file.name
-                if not dst_file.exists():
-                    shutil.copy(py_file, dst_file)
-        logs.info(f"已同步 common 模块到 {dst_common}")
 
 
 def main():
@@ -77,6 +23,16 @@ def main():
                         help="指定时间文件夹（如 2026-05-19），默认为当天")
     parser.add_argument("--test-type", choices=["all", "positive", "negative", "smoke"],
                         default="all", help="测试类型过滤")
+    parser.add_argument("--username", type=str, default=None,
+                        help="登录账号（默认为配置中的账号）")
+    parser.add_argument("--password", type=str, default=None,
+                        help="登录密码（默认为配置中的密码）")
+    parser.add_argument("--sms-code", type=str, default=None,
+                        help="短信验证码（默认为配置中的验证码）")
+    parser.add_argument("--base-url", type=str, default=None,
+                        help="系统基础URL（如 http://182.129.202.241:20051）")
+    parser.add_argument("--login-url", type=str, default=None,
+                        help="登录页面路径（如 /business/#/login）")
 
     args = parser.parse_args()
 
@@ -85,32 +41,49 @@ def main():
     project_root = Path(__file__).parent.parent
     output_base = project_root / "output" / date_folder
 
-    test_script_dir = output_base / "tests" / "admin"
+    test_script_dir = output_base / "tests"
     if not test_script_dir.exists():
         logs.error(f"测试脚本目录不存在: {test_script_dir}")
         print(f"错误: 测试脚本目录不存在: {test_script_dir}")
         return
 
-    # 确保 output 目录结构完整
-    ensure_output_structure(output_base)
-
-    pages_admin_dir = output_base / "pages" / "admin"
-    datas_admin_dir = output_base / "datas" / "admin"
-
-    # 设置 sys.path，优先从 output 目录导入
-    # 注意：pytest 会重新设置 sys.path，所以需要通过环境变量传递
-    import os
-    python_path = f"{output_base}:{output_base / 'pages'}:{pages_admin_dir}:{datas_admin_dir}"
-    if 'PYTHONPATH' in os.environ:
-        os.environ['PYTHONPATH'] = python_path + ":" + os.environ['PYTHONPATH']
-    else:
-        os.environ['PYTHONPATH'] = python_path
-
+    # 创建必要的 output 目录结构（仅 results 和 screenshots）
     results_dir = output_base / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
 
     screenshots_dir = output_base / "results" / "screenshots"
     screenshots_dir.mkdir(parents=True, exist_ok=True)
+
+    # 复制 conftest.py 到 output/tests/，确保 fixture 对测试可见
+    output_tests_conftest = output_base / "tests" / "conftest.py"
+    if not output_tests_conftest.exists():
+        import shutil
+        shutil.copy(E2E_RUNNER_DIR / "conftest.py", output_tests_conftest)
+        logs.info(f"已复制 conftest.py 到: {output_tests_conftest}")
+
+    # 设置环境变量（登录凭证和URL）
+    # 优先级：命令行参数 > settings.py 默认值
+    if args.username:
+        os.environ['E2E_LOGIN_USERNAME'] = args.username
+    if args.password:
+        os.environ['E2E_LOGIN_PASSWORD'] = args.password
+    if args.sms_code:
+        os.environ['E2E_LOGIN_SMS_CODE'] = args.sms_code
+    if args.base_url:
+        os.environ['E2E_BASE_URL'] = args.base_url
+    if args.login_url:
+        os.environ['E2E_LOGIN_URL'] = args.login_url
+
+    # 设置 pytest 运行配置
+    # 通过环境变量传递 PYTHONPATH，让测试脚本能导入 e2e_runner 中的模块
+    python_path = f"{E2E_RUNNER_DIR}:{E2E_RUNNER_DIR / 'pages'}:{E2E_RUNNER_DIR / 'common'}:{E2E_RUNNER_DIR / 'config'}"
+    if 'PYTHONPATH' in os.environ:
+        os.environ['PYTHONPATH'] = python_path + ":" + os.environ['PYTHONPATH']
+    else:
+        os.environ['PYTHONPATH'] = python_path
+
+    # 传递 conftest.py 路径
+    os.environ['E2E_CONFTEST_PATH'] = str(E2E_RUNNER_DIR / "conftest.py")
 
     settings.current_env = args.env
     settings.TEST.test_type = args.test_type
@@ -130,7 +103,8 @@ def main():
     success = test_runner.run(
         results_dir=str(results_dir),
         case_dir=str(test_script_dir),
-        test_type=args.test_type
+        test_type=args.test_type,
+        conftest_path=str(output_tests_conftest)
     )
 
     result_writer = ResultWriter(str(results_dir))

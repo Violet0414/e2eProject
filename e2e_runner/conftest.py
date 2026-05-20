@@ -3,25 +3,35 @@ import pytest
 import sys
 import os
 from pathlib import Path
-from datetime import datetime
 
 # 在导入其他模块之前设置 sys.path
-# 动态获取 output 目录路径
+# conftest.py 可能位于 e2e_runner/ 或 output/.../tests/
 _current_file = Path(__file__).resolve()
-if _current_file.parent.name == "tests":
-    # 如果 conftest.py 在 output/.../tests/ 目录下
-    _output_base = _current_file.parent.parent
-elif _current_file.parent.name == "e2e_runner":
-    # 如果 conftest.py 在 e2e_runner/ 目录下
-    _output_base = _current_file.parent.parent / "output" / datetime.now().strftime("%Y-%m-%d")
-else:
-    _output_base = Path.cwd()
 
-_pages_dir = _output_base / "pages"
-if _pages_dir.exists() and str(_pages_dir) not in sys.path:
-    sys.path.insert(0, str(_pages_dir))
-if str(_output_base) not in sys.path:
-    sys.path.insert(0, str(_output_base))
+# 向上查找 e2e_runner 目录
+# 可能的路径：
+#   1. /path/to/e2eProject/e2e_runner/conftest.py
+#   2. /path/to/e2eProject/output/YYYY-MM-DD/tests/conftest.py
+E2E_RUNNER_DIR = _current_file.parent
+if E2E_RUNNER_DIR.name == "tests":
+    # 如果在 output/.../tests/ 目录下，向上两级到 e2eProject
+    # tests -> 2026-05-19 -> output -> e2eProject
+    E2E_RUNNER_DIR = E2E_RUNNER_DIR.parent.parent.parent / "e2e_runner"
+elif E2E_RUNNER_DIR.name == "e2e_runner":
+    # 已经在 e2e_runner 目录
+    pass
+else:
+    # 回退到默认位置
+    E2E_RUNNER_DIR = Path(__file__).parent
+
+# 添加 e2e_runner 相关路径到 sys.path
+for subdir in ["", "pages", "common", "config", "datas"]:
+    if subdir:
+        path = E2E_RUNNER_DIR / subdir
+    else:
+        path = E2E_RUNNER_DIR
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
 from playwright.sync_api import sync_playwright, Browser, Page
 
@@ -49,20 +59,29 @@ def admin_page(browser: Browser):
     )
     page = context.new_page()
 
+    # 登录凭证：优先使用环境变量，其次使用 settings 默认值
+    login_username = os.environ.get('E2E_LOGIN_USERNAME') or settings.current_account_config.username
+    login_password = os.environ.get('E2E_LOGIN_PASSWORD') or settings.current_account_config.password
+    login_sms_code = os.environ.get('E2E_LOGIN_SMS_CODE') or settings.current_account_config.sms_code
+
+    # 登录 URL：优先使用环境变量，其次使用 settings 默认值
+    base_url = os.environ.get('E2E_BASE_URL') or settings.platform_side_url
+    login_url_path = os.environ.get('E2E_LOGIN_URL') or settings.current_env_config.platform_side.login_url
+    login_url = f"{base_url}{login_url_path}"
+
     try:
-        login_url = f"{settings.platform_side_url}{settings.current_env_config.platform_side.login_url}"
         logs.info(f"正在打开登录页: {login_url}")
         page.goto(login_url)
         page.wait_for_load_state("networkidle")
 
         page.wait_for_timeout(1000)
 
-        page.fill("input[placeholder='账号'], input[placeholder*='账号']", settings.current_account_config.username)
+        page.fill("input[placeholder='账号'], input[placeholder*='账号']", login_username)
         page.wait_for_timeout(300)
-        page.fill("input[placeholder='密码'], input[placeholder*='密码']", settings.current_account_config.password)
+        page.fill("input[placeholder='密码'], input[placeholder*='密码']", login_password)
         page.wait_for_timeout(300)
         # 填写短信验证码
-        page.fill("input[placeholder='请输入验证码']", settings.current_account_config.sms_code)
+        page.fill("input[placeholder='请输入验证码']", login_sms_code)
         page.wait_for_timeout(300)
         page.click("button:has-text('登录')")
         page.wait_for_load_state("networkidle")

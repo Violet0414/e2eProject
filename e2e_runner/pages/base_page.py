@@ -3,6 +3,7 @@ from playwright.sync_api import Page, Locator, expect
 from typing import Optional
 
 from config.settings import settings
+from common.components import FormValidator, FileUploader, DropdownSelector, TableOperate, MessageTip
 
 
 class BasePage:
@@ -12,6 +13,11 @@ class BasePage:
         self.page: Page = page
         self.base_url = settings.platform_side_url
         self.timeout = settings.current_env_config.timeout * 1000
+        self.form_validator = FormValidator(page)
+        self.file_uploader = FileUploader(page)
+        self.dropdown_selector = DropdownSelector(page)
+        self.table_operate = TableOperate(page)
+        self.message_tip = MessageTip(page)
 
     def navigate_to(self, path: str = ""):
         """导航到页面"""
@@ -199,4 +205,51 @@ class BasePage:
             self.page.wait_for_timeout(500)
         except Exception:
             pass
+        return self
+
+    def navigate_menu(self, level1: str = None, level2: str = None, level3: str = None):
+        """
+        通过菜单层级导航到指定模块
+
+        :param level1: 一级菜单名称
+        :param level2: 二级菜单名称
+        :param level3: 三级菜单名称
+        """
+        import time
+
+        def click_menu_item(text: str):
+            """点击菜单项"""
+            # 尝试多种选择器模式
+            selectors = [
+                f"text='{text}'",
+                f"span:has-text('{text}')",
+                f"li:has-text('{text}')",
+                f".menu-wrapper:has-text('{text}')",
+            ]
+            for selector in selectors:
+                try:
+                    element = self.page.locator(selector).first
+                    if element.is_visible(timeout=2000):
+                        element.click()
+                        time.sleep(0.3)
+                        return True
+                except Exception:
+                    continue
+            return False
+
+        # 点击一级菜单
+        if level1:
+            click_menu_item(level1)
+            self.page.wait_for_timeout(300)
+
+        # 点击二级菜单
+        if level2:
+            click_menu_item(level2)
+            self.page.wait_for_timeout(300)
+
+        # 点击三级菜单
+        if level3:
+            click_menu_item(level3)
+            self.page.wait_for_timeout(500)
+
         return self

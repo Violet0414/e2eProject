@@ -729,3 +729,591 @@ Call log:
 2026-05-20 14:33:57 - INFO - logger.py:78 - ============================================================
 2026-05-20 14:33:57 - INFO - logger.py:78 - 自动化测试流程全部完成!
 2026-05-20 14:33:57 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:38:58 - INFO - logger.py:78 - 已复制 conftest.py: /home/mxr/e2eProject/output/2026-05-19/tests/conftest.py
+2026-05-20 14:38:58 - INFO - logger.py:78 - 已同步 config 模块到 /home/mxr/e2eProject/output/2026-05-19/config
+2026-05-20 14:38:58 - INFO - logger.py:78 - 已同步 common 模块到 /home/mxr/e2eProject/output/2026-05-19/common
+2026-05-20 14:38:58 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:38:58 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 14:38:58 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:38:58 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 14:38:58 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 14:38:58 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:38:58 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:38:58 - INFO - logger.py:78 - 测试类型: smoke
+2026-05-20 14:38:58 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:38:58 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:38:58 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 14:38:58 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:38:58 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:38:58 - INFO - logger.py:78 - 测试类型: smoke
+2026-05-20 14:38:58 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:38:58 - INFO - logger.py:78 - 测试执行完成，共生成 111 个结果文件
+2026-05-20 14:38:58 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:38:58 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 14:38:58 - INFO - logger.py:78 -   总计: 111
+2026-05-20 14:38:58 - INFO - logger.py:78 -   通过: 6
+2026-05-20 14:38:58 - INFO - logger.py:78 -   失败: 0
+2026-05-20 14:38:58 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 14:38:58 - INFO - logger.py:78 -   异常: 105
+2026-05-20 14:38:58 - INFO - logger.py:78 -   通过率: 5.41%
+2026-05-20 14:38:58 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 14:38:58 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:38:58 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:38:58 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 14:38:58 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:39:06 - INFO - logger.py:78 - 已复制 conftest.py: /home/mxr/e2eProject/output/2026-05-19/tests/conftest.py
+2026-05-20 14:39:06 - INFO - logger.py:78 - 已同步 config 模块到 /home/mxr/e2eProject/output/2026-05-19/config
+2026-05-20 14:39:06 - INFO - logger.py:78 - 已同步 common 模块到 /home/mxr/e2eProject/output/2026-05-19/common
+2026-05-20 14:39:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:39:06 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 14:39:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:39:06 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 14:39:06 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 14:39:06 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:39:06 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:39:06 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 14:39:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:39:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:39:06 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 14:39:06 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:39:06 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:39:06 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 14:39:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:39:07 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 14:39:15 - INFO - logger.py:78 - 登录成功
+2026-05-20 14:39:16 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 14:39:17 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 14:39:17 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-只填写必填字段提交成功__failed.png
+2026-05-20 14:39:17 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-只填写必填字段提交成功__failed.png
+2026-05-20 14:39:17 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-填写部分非必填字段提交成功__failed.png
+2026-05-20 14:39:18 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-填写部分非必填字段提交成功__failed.png
+2026-05-20 14:39:18 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称为空__failed.png
+2026-05-20 14:39:18 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称为空__failed.png
+2026-05-20 14:39:18 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-街道为空__failed.png
+2026-05-20 14:39:18 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-街道为空__failed.png
+2026-05-20 14:39:19 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-详细地址为空__failed.png
+2026-05-20 14:39:19 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-详细地址为空__failed.png
+2026-05-20 14:39:19 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称超过最大长度__failed.png
+2026-05-20 14:39:19 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称超过最大长度__failed.png
+2026-05-20 14:39:19 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-服务电话格式错误__failed.png
+2026-05-20 14:39:20 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-服务电话格式错误__failed.png
+2026-05-20 14:39:20 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-充电桩总数输入负数__failed.png
+2026-05-20 14:39:20 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-充电桩总数输入负数__failed.png
+2026-05-20 14:39:21 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-按点位/桩群名称精确搜索__failed.png
+2026-05-20 14:39:21 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-按点位/桩群名称精确搜索__failed.png
+2026-05-20 14:39:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-按运营商/品牌搜索__failed.png
+2026-05-20 14:39:23 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-按运营商/品牌搜索__failed.png
+2026-05-20 14:39:24 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-组合条件搜索__failed.png
+2026-05-20 14:39:24 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-组合条件搜索__failed.png
+2026-05-20 14:39:25 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-搜索结果为空__failed.png
+2026-05-20 14:39:25 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-搜索结果为空__failed.png
+2026-05-20 14:39:27 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_edit_正向-编辑修改点位/桩群名称__failed.png
+2026-05-20 14:39:27 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_edit_正向-编辑修改点位/桩群名称__failed.png
+2026-05-20 14:39:28 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_edit_正向-编辑清空非必填字段__failed.png
+2026-05-20 14:39:28 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_edit_正向-编辑清空非必填字段__failed.png
+2026-05-20 14:39:28 - INFO - logger.py:78 - 测试执行完成，共生成 126 个结果文件
+2026-05-20 14:39:28 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:39:28 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 14:39:28 - INFO - logger.py:78 -   总计: 126
+2026-05-20 14:39:28 - INFO - logger.py:78 -   通过: 6
+2026-05-20 14:39:28 - INFO - logger.py:78 -   失败: 0
+2026-05-20 14:39:28 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 14:39:28 - INFO - logger.py:78 -   异常: 120
+2026-05-20 14:39:28 - INFO - logger.py:78 -   通过率: 4.76%
+2026-05-20 14:39:28 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 14:39:28 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:39:28 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:39:28 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 14:39:28 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:41:26 - INFO - logger.py:78 - 已复制 conftest.py: /home/mxr/e2eProject/output/2026-05-19/tests/conftest.py
+2026-05-20 14:41:26 - INFO - logger.py:78 - 已同步 config 模块到 /home/mxr/e2eProject/output/2026-05-19/config
+2026-05-20 14:41:26 - INFO - logger.py:78 - 已同步 common 模块到 /home/mxr/e2eProject/output/2026-05-19/common
+2026-05-20 14:41:26 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:41:26 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 14:41:26 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:41:26 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 14:41:26 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 14:41:26 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:41:26 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:41:26 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 14:41:26 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:41:26 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:41:26 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 14:41:26 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:41:26 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:41:26 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 14:41:26 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:41:27 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 14:41:34 - INFO - logger.py:78 - 登录成功
+2026-05-20 14:41:34 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 14:41:35 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 14:41:35 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-只填写必填字段提交成功__failed.png
+2026-05-20 14:41:35 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-只填写必填字段提交成功__failed.png
+2026-05-20 14:41:35 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-填写部分非必填字段提交成功__failed.png
+2026-05-20 14:41:35 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-填写部分非必填字段提交成功__failed.png
+2026-05-20 14:41:35 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称为空__failed.png
+2026-05-20 14:41:36 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称为空__failed.png
+2026-05-20 14:41:36 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-街道为空__failed.png
+2026-05-20 14:41:36 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-街道为空__failed.png
+2026-05-20 14:41:36 - INFO - logger.py:78 - 测试执行完成，共生成 131 个结果文件
+2026-05-20 14:41:36 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:41:36 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 14:41:36 - INFO - logger.py:78 -   总计: 131
+2026-05-20 14:41:36 - INFO - logger.py:78 -   通过: 6
+2026-05-20 14:41:36 - INFO - logger.py:78 -   失败: 0
+2026-05-20 14:41:36 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 14:41:36 - INFO - logger.py:78 -   异常: 125
+2026-05-20 14:41:36 - INFO - logger.py:78 -   通过率: 4.58%
+2026-05-20 14:41:36 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 14:41:36 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:41:36 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:41:36 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 14:41:36 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:43:11 - INFO - logger.py:78 - 已复制 conftest.py: /home/mxr/e2eProject/output/2026-05-19/tests/conftest.py
+2026-05-20 14:43:11 - INFO - logger.py:78 - 已同步 config 模块到 /home/mxr/e2eProject/output/2026-05-19/config
+2026-05-20 14:43:11 - INFO - logger.py:78 - 已同步 common 模块到 /home/mxr/e2eProject/output/2026-05-19/common
+2026-05-20 14:43:11 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:43:11 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 14:43:11 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:43:11 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 14:43:11 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 14:43:11 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:43:11 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:43:11 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 14:43:11 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:43:11 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:43:11 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 14:43:11 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:43:11 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:43:11 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 14:43:11 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:43:11 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 14:43:20 - INFO - logger.py:78 - 登录成功
+2026-05-20 14:43:21 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 14:43:21 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 14:43:21 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-只填写必填字段提交成功__failed.png
+2026-05-20 14:43:21 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-只填写必填字段提交成功__failed.png
+2026-05-20 14:43:21 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-填写部分非必填字段提交成功__failed.png
+2026-05-20 14:43:21 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-填写部分非必填字段提交成功__failed.png
+2026-05-20 14:43:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称为空__failed.png
+2026-05-20 14:43:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称为空__failed.png
+2026-05-20 14:43:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-街道为空__failed.png
+2026-05-20 14:43:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-街道为空__failed.png
+2026-05-20 14:43:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-详细地址为空__failed.png
+2026-05-20 14:43:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-详细地址为空__failed.png
+2026-05-20 14:43:23 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称超过最大长度__failed.png
+2026-05-20 14:43:23 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称超过最大长度__failed.png
+2026-05-20 14:43:23 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-服务电话格式错误__failed.png
+2026-05-20 14:43:23 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-服务电话格式错误__failed.png
+2026-05-20 14:43:23 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-充电桩总数输入负数__failed.png
+2026-05-20 14:43:24 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-充电桩总数输入负数__failed.png
+2026-05-20 14:43:25 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-按点位/桩群名称精确搜索__failed.png
+2026-05-20 14:43:25 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-按点位/桩群名称精确搜索__failed.png
+2026-05-20 14:43:26 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-按运营商/品牌搜索__failed.png
+2026-05-20 14:43:26 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-按运营商/品牌搜索__failed.png
+2026-05-20 14:43:27 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-组合条件搜索__failed.png
+2026-05-20 14:43:28 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-组合条件搜索__failed.png
+2026-05-20 14:43:29 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-搜索结果为空__failed.png
+2026-05-20 14:43:29 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_search_正向-搜索结果为空__failed.png
+2026-05-20 14:43:30 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_edit_正向-编辑修改点位/桩群名称__failed.png
+2026-05-20 14:43:30 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_edit_正向-编辑修改点位/桩群名称__failed.png
+2026-05-20 14:43:31 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_edit_正向-编辑清空非必填字段__failed.png
+2026-05-20 14:43:32 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_edit_正向-编辑清空非必填字段__failed.png
+2026-05-20 14:43:32 - INFO - logger.py:78 - 测试执行完成，共生成 146 个结果文件
+2026-05-20 14:43:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:43:32 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 14:43:32 - INFO - logger.py:78 -   总计: 146
+2026-05-20 14:43:32 - INFO - logger.py:78 -   通过: 6
+2026-05-20 14:43:32 - INFO - logger.py:78 -   失败: 0
+2026-05-20 14:43:32 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 14:43:32 - INFO - logger.py:78 -   异常: 140
+2026-05-20 14:43:32 - INFO - logger.py:78 -   通过率: 4.11%
+2026-05-20 14:43:32 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 14:43:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:43:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:43:32 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 14:43:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:44:14 - INFO - logger.py:78 - 已复制 conftest.py: /home/mxr/e2eProject/output/2026-05-19/tests/conftest.py
+2026-05-20 14:44:14 - INFO - logger.py:78 - 已同步 config 模块到 /home/mxr/e2eProject/output/2026-05-19/config
+2026-05-20 14:44:14 - INFO - logger.py:78 - 已同步 common 模块到 /home/mxr/e2eProject/output/2026-05-19/common
+2026-05-20 14:44:14 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:44:14 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 14:44:14 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:44:14 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 14:44:14 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 14:44:14 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:44:14 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:44:14 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 14:44:14 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:44:14 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:44:14 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 14:44:14 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:44:14 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:44:14 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 14:44:14 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:44:14 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 14:44:21 - INFO - logger.py:78 - 登录成功
+2026-05-20 14:44:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 14:44:23 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 14:44:23 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-只填写必填字段提交成功__failed.png
+2026-05-20 14:51:25 - INFO - logger.py:78 - 已复制 conftest.py: /home/mxr/e2eProject/output/2026-05-19/tests/conftest.py
+2026-05-20 14:51:25 - INFO - logger.py:78 - 已同步 config 模块到 /home/mxr/e2eProject/output/2026-05-19/config
+2026-05-20 14:51:25 - INFO - logger.py:78 - 已同步 common 模块到 /home/mxr/e2eProject/output/2026-05-19/common
+2026-05-20 14:51:25 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:51:25 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 14:51:25 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:51:25 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 14:51:25 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 14:51:25 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:51:25 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:51:25 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 14:51:25 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:51:25 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:51:25 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 14:51:25 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 14:51:25 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 14:51:25 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 14:51:25 - INFO - logger.py:78 - ============================================================
+2026-05-20 14:51:26 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 14:51:33 - INFO - logger.py:78 - 登录成功
+2026-05-20 14:52:06 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 14:52:07 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 14:52:39 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-只填写必填字段提交成功__failed.png
+2026-05-20 14:52:40 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-只填写必填字段提交成功__failed.png
+2026-05-20 14:53:12 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-填写部分非必填字段提交成功__failed.png
+2026-05-20 14:53:13 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_正向-填写部分非必填字段提交成功__failed.png
+2026-05-20 14:53:45 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称为空__failed.png
+2026-05-20 14:53:46 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称为空__failed.png
+2026-05-20 14:54:17 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-街道为空__failed.png
+2026-05-20 14:54:18 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-街道为空__failed.png
+2026-05-20 14:54:50 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-详细地址为空__failed.png
+2026-05-20 14:54:51 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-详细地址为空__failed.png
+2026-05-20 14:55:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称超过最大长度__failed.png
+2026-05-20 14:55:23 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_反向-点位/桩群名称超过最大长度__failed.png
+2026-05-20 15:09:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:09:22 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 15:09:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:09:22 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 15:09:22 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 15:09:22 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:09:22 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:09:22 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:09:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:09:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:09:22 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 15:09:22 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:09:22 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:09:22 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:09:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:09:22 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/e2e_runner/conftest.py
+2026-05-20 15:09:22 - INFO - logger.py:78 - 测试执行完成，共生成 155 个结果文件
+2026-05-20 15:09:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:09:22 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 15:09:22 - INFO - logger.py:78 -   总计: 155
+2026-05-20 15:09:22 - INFO - logger.py:78 -   通过: 7
+2026-05-20 15:09:22 - INFO - logger.py:78 -   失败: 0
+2026-05-20 15:09:22 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 15:09:22 - INFO - logger.py:78 -   异常: 148
+2026-05-20 15:09:22 - INFO - logger.py:78 -   通过率: 4.52%
+2026-05-20 15:09:22 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 15:09:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:09:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:09:22 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 15:09:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:18:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:18:00 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 15:18:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:18:00 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 15:18:00 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 15:18:00 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:18:00 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:18:00 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:18:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:18:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:18:00 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 15:18:00 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:18:00 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:18:00 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:18:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:18:00 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/e2e_runner/conftest.py
+2026-05-20 15:18:00 - ERROR - logger.py:86 - 测试执行异常: [Errno 32] Broken pipe
+2026-05-20 15:18:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:18:00 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 15:18:00 - INFO - logger.py:78 -   总计: 170
+2026-05-20 15:18:00 - INFO - logger.py:78 -   通过: 7
+2026-05-20 15:18:00 - INFO - logger.py:78 -   失败: 0
+2026-05-20 15:18:00 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 15:18:00 - INFO - logger.py:78 -   异常: 163
+2026-05-20 15:18:00 - INFO - logger.py:78 -   通过率: 4.12%
+2026-05-20 15:18:00 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 15:18:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:18:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:18:00 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 15:18:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:19:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:19:22 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 15:19:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:19:22 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 15:19:22 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 15:19:22 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:19:22 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:19:22 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:19:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:19:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:19:22 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 15:19:22 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:19:22 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:19:22 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:19:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:19:22 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/e2e_runner/conftest.py
+2026-05-20 15:19:22 - ERROR - logger.py:86 - 测试执行异常: [Errno 32] Broken pipe
+2026-05-20 15:19:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:19:22 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 15:19:22 - INFO - logger.py:78 -   总计: 185
+2026-05-20 15:19:22 - INFO - logger.py:78 -   通过: 7
+2026-05-20 15:19:22 - INFO - logger.py:78 -   失败: 0
+2026-05-20 15:19:22 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 15:19:22 - INFO - logger.py:78 -   异常: 178
+2026-05-20 15:19:22 - INFO - logger.py:78 -   通过率: 3.78%
+2026-05-20 15:19:22 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 15:19:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:19:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:19:22 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 15:19:22 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:06 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 15:21:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:06 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 15:21:06 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 15:21:06 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:21:06 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:21:06 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:21:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:06 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 15:21:06 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:21:06 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:21:06 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:21:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:06 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/e2e_runner/conftest.py
+2026-05-20 15:21:06 - ERROR - logger.py:86 - 测试执行异常: [Errno 32] Broken pipe
+2026-05-20 15:21:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:06 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 15:21:06 - INFO - logger.py:78 -   总计: 200
+2026-05-20 15:21:06 - INFO - logger.py:78 -   通过: 7
+2026-05-20 15:21:06 - INFO - logger.py:78 -   失败: 0
+2026-05-20 15:21:06 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 15:21:06 - INFO - logger.py:78 -   异常: 193
+2026-05-20 15:21:06 - INFO - logger.py:78 -   通过率: 3.50%
+2026-05-20 15:21:06 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 15:21:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:06 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 15:21:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:48 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:48 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 15:21:48 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:48 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 15:21:48 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 15:21:48 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:21:48 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:21:48 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:21:48 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:48 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:48 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 15:21:48 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:21:48 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:21:48 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:21:48 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:21:48 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/e2e_runner/conftest.py
+2026-05-20 15:21:49 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 15:22:04 - INFO - logger.py:78 - 登录成功
+2026-05-20 15:22:38 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_\u5192\u70df-\u5b8c\u6574\u586b\u5199\u6240\u6709\u5b57\u6bb5\u63d0\u4ea4\u6210\u529f__failed.png
+2026-05-20 15:23:12 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_\u6b63\u5411-\u53ea\u586b\u5199\u5fc5\u586b\u5b57\u6bb5\u63d0\u4ea4\u6210\u529f__failed.png
+2026-05-20 15:23:50 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:23:50 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 15:23:50 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:23:50 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 15:23:50 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 15:23:50 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:23:50 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:23:50 - INFO - logger.py:78 - 测试类型: smoke
+2026-05-20 15:23:50 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:23:50 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:23:50 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 15:23:50 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:23:50 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:23:50 - INFO - logger.py:78 - 测试类型: smoke
+2026-05-20 15:23:50 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:23:50 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/e2e_runner/conftest.py
+2026-05-20 15:23:50 - INFO - logger.py:78 - 测试执行完成，共生成 202 个结果文件
+2026-05-20 15:23:50 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:23:50 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 15:23:50 - INFO - logger.py:78 -   总计: 202
+2026-05-20 15:23:50 - INFO - logger.py:78 -   通过: 7
+2026-05-20 15:23:50 - INFO - logger.py:78 -   失败: 0
+2026-05-20 15:23:50 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 15:23:50 - INFO - logger.py:78 -   异常: 195
+2026-05-20 15:23:50 - INFO - logger.py:78 -   通过率: 3.47%
+2026-05-20 15:23:50 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 15:23:50 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:23:50 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:23:50 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 15:23:50 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:24:39 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:24:39 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 15:24:39 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:24:39 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 15:24:39 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 15:24:39 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:24:39 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:24:39 - INFO - logger.py:78 - 测试类型: smoke
+2026-05-20 15:24:39 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:24:39 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:24:39 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 15:24:39 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:24:39 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:24:39 - INFO - logger.py:78 - 测试类型: smoke
+2026-05-20 15:24:39 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:24:39 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/e2e_runner/conftest.py
+2026-05-20 15:24:39 - INFO - logger.py:78 - 测试执行完成，共生成 202 个结果文件
+2026-05-20 15:24:39 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:24:39 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 15:24:39 - INFO - logger.py:78 -   总计: 202
+2026-05-20 15:24:39 - INFO - logger.py:78 -   通过: 7
+2026-05-20 15:24:39 - INFO - logger.py:78 -   失败: 0
+2026-05-20 15:24:39 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 15:24:39 - INFO - logger.py:78 -   异常: 195
+2026-05-20 15:24:39 - INFO - logger.py:78 -   通过率: 3.47%
+2026-05-20 15:24:39 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 15:24:39 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:24:39 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:24:39 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 15:24:39 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:25:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:25:32 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 15:25:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:25:32 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 15:25:32 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 15:25:32 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:25:32 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:25:32 - INFO - logger.py:78 - 测试类型: smoke
+2026-05-20 15:25:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:25:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:25:32 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 15:25:32 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:25:32 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:25:32 - INFO - logger.py:78 - 测试类型: smoke
+2026-05-20 15:25:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:25:32 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/output/2026-05-19/tests/conftest.py
+2026-05-20 15:25:32 - INFO - logger.py:78 - 测试执行完成，共生成 202 个结果文件
+2026-05-20 15:25:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:25:32 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 15:25:32 - INFO - logger.py:78 -   总计: 202
+2026-05-20 15:25:32 - INFO - logger.py:78 -   通过: 7
+2026-05-20 15:25:32 - INFO - logger.py:78 -   失败: 0
+2026-05-20 15:25:32 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 15:25:32 - INFO - logger.py:78 -   异常: 195
+2026-05-20 15:25:32 - INFO - logger.py:78 -   通过率: 3.47%
+2026-05-20 15:25:32 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 15:25:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:25:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:25:32 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 15:25:32 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:26:40 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:26:40 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 15:26:40 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:26:40 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 15:26:40 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 15:26:40 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:26:40 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:26:40 - INFO - logger.py:78 - 测试类型: smoke
+2026-05-20 15:26:40 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:26:40 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:26:40 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 15:26:40 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:26:40 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:26:40 - INFO - logger.py:78 - 测试类型: smoke
+2026-05-20 15:26:40 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:26:40 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/output/2026-05-19/tests/conftest.py
+2026-05-20 15:26:40 - INFO - logger.py:78 - 测试执行完成，共生成 202 个结果文件
+2026-05-20 15:26:40 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:26:40 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 15:26:40 - INFO - logger.py:78 -   总计: 202
+2026-05-20 15:26:40 - INFO - logger.py:78 -   通过: 7
+2026-05-20 15:26:40 - INFO - logger.py:78 -   失败: 0
+2026-05-20 15:26:40 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 15:26:40 - INFO - logger.py:78 -   异常: 195
+2026-05-20 15:26:40 - INFO - logger.py:78 -   通过率: 3.47%
+2026-05-20 15:26:40 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 15:26:40 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:26:40 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:26:40 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 15:26:40 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:29:31 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 15:29:38 - INFO - logger.py:78 - 登录成功
+2026-05-20 15:30:13 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 15:30:13 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_冒烟-完整填写所有字段提交成功__failed.png
+2026-05-20 15:30:47 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_正向-只填写必填字段提交成功__failed.png
+2026-05-20 15:30:48 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_正向-只填写必填字段提交成功__failed.png
+2026-05-20 15:31:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_正向-填写部分非必填字段提交成功__failed.png
+2026-05-20 15:31:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_正向-填写部分非必填字段提交成功__failed.png
+2026-05-20 15:31:56 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-点位/桩群名称为空__failed.png
+2026-05-20 15:31:56 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-点位/桩群名称为空__failed.png
+2026-05-20 15:32:30 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-街道为空__failed.png
+2026-05-20 15:32:30 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-街道为空__failed.png
+2026-05-20 15:32:45 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:32:45 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 15:32:45 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:32:45 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 15:32:45 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 15:32:45 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:32:45 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:32:45 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:32:45 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:32:45 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:32:45 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 15:32:45 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests/admin
+2026-05-20 15:32:45 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 15:32:45 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 15:32:45 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:32:45 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/output/2026-05-19/tests/conftest.py
+2026-05-20 15:32:46 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 15:32:55 - INFO - logger.py:78 - 登录成功
+2026-05-20 15:33:04 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-详细地址为空__failed.png
+2026-05-20 15:33:04 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-详细地址为空__failed.png
+2026-05-20 15:33:25 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:26 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:26 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:26 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:26 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:26 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:26 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:27 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:27 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:28 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:29 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:30 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:31 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:33 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:34 - ERROR - logger.py:86 - 截图失败: Page.screenshot: Target page, context or browser has been closed
+2026-05-20 15:33:34 - INFO - logger.py:78 - 测试执行完成，共生成 217 个结果文件
+2026-05-20 15:33:34 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:33:34 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 15:33:34 - INFO - logger.py:78 -   总计: 217
+2026-05-20 15:33:34 - INFO - logger.py:78 -   通过: 7
+2026-05-20 15:33:34 - INFO - logger.py:78 -   失败: 0
+2026-05-20 15:33:34 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 15:33:34 - INFO - logger.py:78 -   异常: 210
+2026-05-20 15:33:34 - INFO - logger.py:78 -   通过率: 3.23%
+2026-05-20 15:33:34 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-19/results/results.json
+2026-05-20 15:33:34 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:33:34 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:33:34 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 15:33:34 - INFO - logger.py:78 - ============================================================
+2026-05-20 15:33:37 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-点位/桩群名称超过最大长度__failed.png
+2026-05-20 15:33:37 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-点位/桩群名称超过最大长度__failed.png
+2026-05-20 15:34:11 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-服务电话格式错误__failed.png
+2026-05-20 15:34:12 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-服务电话格式错误__failed.png
+2026-05-20 15:34:46 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-充电桩总数输入负数__failed.png
+2026-05-20 15:34:46 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-充电桩总数输入负数__failed.png
