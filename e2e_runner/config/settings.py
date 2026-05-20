@@ -20,6 +20,7 @@ class AccountConfig(BaseSettings):
     """账号配置"""
     username: str
     password: str
+    sms_code: str = "34287"  # 测试用短信验证码
 
 
 class EnvConfig(BaseSettings):
@@ -82,8 +83,8 @@ class Settings(BaseSettings):
     ACCOUNT: Dict[str, AccountEnvConfig] = {
         "test": AccountEnvConfig(
             platform_side=AccountConfig(
-                username="15077041808",
-                password="5ykQU0ZpOP7oZRn1TWzZsQ=="
+                username="Sn_admin",
+                password="Smart@123456"
             )
         ),
         "prod": AccountEnvConfig(

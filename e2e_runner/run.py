@@ -22,6 +22,7 @@ def ensure_output_structure(output_base: Path):
         output_base / "datas",
         output_base / "datas" / "admin",
         output_base / "common",
+        output_base / "config",
     ]:
         dir_path.mkdir(parents=True, exist_ok=True)
         init_file = dir_path / "__init__.py"
@@ -35,6 +36,26 @@ def ensure_output_structure(output_base: Path):
     if src_base_page.exists() and not dst_base_page.exists():
         shutil.copy(src_base_page, dst_base_page)
         logs.info(f"已创建 base_page: {dst_base_page}")
+
+    # 复制 conftest.py 到 output/tests/ 目录
+    # 因为测试脚本依赖 admin_page 等 fixture
+    src_conftest = Path(__file__).parent / "conftest.py"
+    dst_conftest = output_base / "tests" / "conftest.py"
+    if src_conftest.exists():
+        shutil.copy(src_conftest, dst_conftest)
+        logs.info(f"已复制 conftest.py: {dst_conftest}")
+
+    # 复制 config 模块到 output/config/ 目录
+    # 因为 conftest.py 中的 fixture 依赖 config.settings
+    src_config = Path(__file__).parent / "config"
+    dst_config = output_base / "config"
+    if src_config.exists():
+        for py_file in src_config.glob("*.py"):
+            if py_file.name != "__init__.py":
+                dst_file = dst_config / py_file.name
+                if not dst_file.exists():
+                    shutil.copy(py_file, dst_file)
+        logs.info(f"已同步 config 模块到 {dst_config}")
 
     # 复制 common 模块到 output/common/ 目录
     src_common = Path(__file__).parent / "common"

@@ -1,8 +1,27 @@
 """pytest 配置和 fixtures"""
 import pytest
 import sys
+import os
 from pathlib import Path
 from datetime import datetime
+
+# 在导入其他模块之前设置 sys.path
+# 动态获取 output 目录路径
+_current_file = Path(__file__).resolve()
+if _current_file.parent.name == "tests":
+    # 如果 conftest.py 在 output/.../tests/ 目录下
+    _output_base = _current_file.parent.parent
+elif _current_file.parent.name == "e2e_runner":
+    # 如果 conftest.py 在 e2e_runner/ 目录下
+    _output_base = _current_file.parent.parent / "output" / datetime.now().strftime("%Y-%m-%d")
+else:
+    _output_base = Path.cwd()
+
+_pages_dir = _output_base / "pages"
+if _pages_dir.exists() and str(_pages_dir) not in sys.path:
+    sys.path.insert(0, str(_pages_dir))
+if str(_output_base) not in sys.path:
+    sys.path.insert(0, str(_output_base))
 
 from playwright.sync_api import sync_playwright, Browser, Page
 
@@ -38,11 +57,14 @@ def admin_page(browser: Browser):
 
         page.wait_for_timeout(1000)
 
-        page.fill("input[placeholder*='用户名'], input[name='username']", settings.current_account_config.username)
+        page.fill("input[placeholder='账号'], input[placeholder*='账号']", settings.current_account_config.username)
         page.wait_for_timeout(300)
-        page.fill("input[placeholder*='密码'], input[name='password']", settings.current_account_config.password)
+        page.fill("input[placeholder='密码'], input[placeholder*='密码']", settings.current_account_config.password)
         page.wait_for_timeout(300)
-        page.click("button[type='submit'], button:has-text('登录')")
+        # 填写短信验证码
+        page.fill("input[placeholder='请输入验证码']", settings.current_account_config.sms_code)
+        page.wait_for_timeout(300)
+        page.click("button:has-text('登录')")
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(2000)
         logs.info("登录成功")
@@ -59,7 +81,7 @@ def admin_page(browser: Browser):
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_makereport(item, call):
     """失败时自动截图"""
-    if call.when == "call" and call.failed:
+    if call.when == "call" and call.excinfo is not None:
         page = None
         if "admin_page" in item.funcargs:
             page = item.funcargs["admin_page"]
