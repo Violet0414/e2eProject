@@ -1317,3 +1317,241 @@ Call log:
 2026-05-20 15:34:12 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-服务电话格式错误__failed.png
 2026-05-20 15:34:46 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-充电桩总数输入负数__failed.png
 2026-05-20 15:34:46 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/screenshots/test_charging_pile_add_反向-充电桩总数输入负数__failed.png
+2026-05-20 17:35:04 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:35:04 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 17:35:04 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:35:04 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 17:35:04 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 17:35:04 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests
+2026-05-20 17:35:04 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 17:35:04 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:35:04 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:35:04 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:35:04 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 17:35:04 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests
+2026-05-20 17:35:04 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 17:35:04 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:35:04 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:35:04 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/output/2026-05-19/tests/conftest.py
+2026-05-20 17:35:06 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 17:35:14 - INFO - logger.py:78 - 登录成功
+2026-05-20 17:35:49 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_\u5192\u70df-\u5b8c\u6574\u586b\u5199\u6240\u6709\u5b57\u6bb5\u63d0\u4ea4\u6210\u529f__failed.png
+2026-05-20 17:36:22 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-19/results/screenshots/test_charging_pile_add_\u6b63\u5411-\u53ea\u586b\u5199\u5fc5\u586b\u5b57\u6bb5\u63d0\u4ea4\u6210\u529f__failed.png
+2026-05-20 17:37:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:37:06 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 17:37:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:37:06 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 17:37:06 - INFO - logger.py:78 - 时间文件夹: 2026-05-19
+2026-05-20 17:37:06 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-19/tests
+2026-05-20 17:37:06 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 17:37:06 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:37:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:37:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:37:06 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 17:37:06 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-19/tests
+2026-05-20 17:37:06 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-19/results
+2026-05-20 17:37:06 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:37:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:37:06 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/output/2026-05-19/tests/conftest.py
+2026-05-20 17:37:07 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 17:37:15 - INFO - logger.py:78 - 登录成功
+2026-05-20 17:41:21 - INFO - logger.py:78 - 已复制 conftest.py 到: /home/mxr/e2eProject/output/2026-05-20/tests/conftest.py
+2026-05-20 17:41:21 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:21 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 17:41:21 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:21 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 17:41:21 - INFO - logger.py:78 - 时间文件夹: 2026-05-20
+2026-05-20 17:41:21 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-20/tests
+2026-05-20 17:41:21 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-20/results
+2026-05-20 17:41:21 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:41:21 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:21 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:21 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 17:41:21 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-20/tests
+2026-05-20 17:41:21 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-20/results
+2026-05-20 17:41:21 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:41:21 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:21 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/output/2026-05-20/tests/conftest.py
+2026-05-20 17:41:21 - INFO - logger.py:78 - 测试执行完成，共生成 0 个结果文件
+2026-05-20 17:41:21 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:21 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 17:41:21 - INFO - logger.py:78 -   总计: 0
+2026-05-20 17:41:21 - INFO - logger.py:78 -   通过: 0
+2026-05-20 17:41:21 - INFO - logger.py:78 -   失败: 0
+2026-05-20 17:41:21 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 17:41:21 - INFO - logger.py:78 -   异常: 0
+2026-05-20 17:41:21 - INFO - logger.py:78 -   通过率: 0%
+2026-05-20 17:41:21 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-20/results/results.json
+2026-05-20 17:41:21 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:21 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:21 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 17:41:21 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:59 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:59 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 17:41:59 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:59 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 17:41:59 - INFO - logger.py:78 - 时间文件夹: 2026-05-20
+2026-05-20 17:41:59 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-20/tests
+2026-05-20 17:41:59 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-20/results
+2026-05-20 17:41:59 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:41:59 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:59 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:59 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 17:41:59 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-20/tests
+2026-05-20 17:41:59 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-20/results
+2026-05-20 17:41:59 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:41:59 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:41:59 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/output/2026-05-20/tests/conftest.py
+2026-05-20 17:42:00 - INFO - logger.py:78 - 测试执行完成，共生成 0 个结果文件
+2026-05-20 17:42:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:00 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 17:42:00 - INFO - logger.py:78 -   总计: 0
+2026-05-20 17:42:00 - INFO - logger.py:78 -   通过: 0
+2026-05-20 17:42:00 - INFO - logger.py:78 -   失败: 0
+2026-05-20 17:42:00 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 17:42:00 - INFO - logger.py:78 -   异常: 0
+2026-05-20 17:42:00 - INFO - logger.py:78 -   通过率: 0%
+2026-05-20 17:42:00 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-20/results/results.json
+2026-05-20 17:42:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:00 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 17:42:00 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:29 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:29 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 17:42:29 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:29 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 17:42:29 - INFO - logger.py:78 - 时间文件夹: 2026-05-20
+2026-05-20 17:42:29 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-20/tests
+2026-05-20 17:42:29 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-20/results
+2026-05-20 17:42:29 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:42:29 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:29 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:29 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 17:42:29 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-20/tests
+2026-05-20 17:42:29 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-20/results
+2026-05-20 17:42:29 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:42:29 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:29 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/output/2026-05-20/tests/conftest.py
+2026-05-20 17:42:30 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 17:42:37 - INFO - logger.py:78 - 登录成功
+2026-05-20 17:42:38 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u5192\u70df-\u5b8c\u6574\u586b\u5199\u6240\u6709\u5b57\u6bb5\u63d0\u4ea4\u6210\u529f__failed.png
+2026-05-20 17:42:38 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u6b63\u5411-\u53ea\u586b\u5199\u5fc5\u586b\u5b57\u6bb5\u63d0\u4ea4\u6210\u529f__failed.png
+2026-05-20 17:42:39 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5bf9\u8c61\u540d\u79f0\u4e3a\u7a7a__failed.png
+2026-05-20 17:42:39 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5bf9\u8c61\u53f7\u7801\u4e3a\u7a7a__failed.png
+2026-05-20 17:42:39 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u6027\u522b\u4e3a\u7a7a__failed.png
+2026-05-20 17:42:40 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u8054\u7cfb\u624b\u673a\u4e3a\u7a7a__failed.png
+2026-05-20 17:42:40 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u4eba\u5458\u7c7b\u578b\u4e3a\u7a7a__failed.png
+2026-05-20 17:42:41 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5bf9\u8c61\u540d\u79f0\u8d85\u8fc7\u957f\u5ea6\u9650\u5236__failed.png
+2026-05-20 17:42:41 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5931\u4e1a\u539f\u56e0\u8d85\u8fc7\u957f\u5ea6\u9650\u5236__failed.png
+2026-05-20 17:42:41 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u6b63\u5411-\u6240\u6709\u5c31\u4e1a\u610f\u613f\u9009\u9879\u90fd\u586b\u5199__failed.png
+2026-05-20 17:42:42 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u6309\u5bf9\u8c61\u540d\u79f0\u7cbe\u786e\u67e5\u8be2__failed.png
+2026-05-20 17:42:42 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u6309\u5bf9\u8c61\u53f7\u7801\u7cbe\u786e\u67e5\u8be2__failed.png
+2026-05-20 17:42:42 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u6309\u5bf9\u8c61\u7c7b\u578b\u67e5\u8be2__failed.png
+2026-05-20 17:42:43 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u6309\u5c31\u4e1a\u72b6\u6001\u67e5\u8be2__failed.png
+2026-05-20 17:42:43 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u6309\u4efb\u52a1\u72b6\u6001\u67e5\u8be2__failed.png
+2026-05-20 17:42:44 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u591a\u6761\u4ef6\u7ec4\u5408\u67e5\u8be2__failed.png
+2026-05-20 17:42:44 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u91cd\u7f6e\u67e5\u8be2\u6761\u4ef6__failed.png
+2026-05-20 17:42:44 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u53cd\u5411-\u67e5\u8be2\u4e0d\u5b58\u5728\u7684\u6570\u636e__failed.png
+2026-05-20 17:42:45 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_edit_\u6b63\u5411-\u4fee\u6539\u8054\u7cfb\u7535\u8bdd__failed.png
+2026-05-20 17:42:45 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_edit_\u6b63\u5411-\u6e05\u7a7a\u975e\u5fc5\u586b\u5b57\u6bb5\u540e\u4fdd\u5b58__failed.png
+2026-05-20 17:42:46 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_detail_\u6b63\u5411-\u67e5\u770b\u8be6\u60c5\u4fe1\u606f\u663e\u793a\u6b63\u786e__failed.png
+2026-05-20 17:42:46 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_pagination_\u6b63\u5411-\u5206\u9875\u63a7\u4ef6\u7ffb\u9875\u529f\u80fd\u6b63\u5e38__failed.png
+2026-05-20 17:42:46 - INFO - logger.py:78 - 测试执行完成，共生成 22 个结果文件
+2026-05-20 17:42:46 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:46 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 17:42:46 - INFO - logger.py:78 -   总计: 22
+2026-05-20 17:42:46 - INFO - logger.py:78 -   通过: 0
+2026-05-20 17:42:46 - INFO - logger.py:78 -   失败: 0
+2026-05-20 17:42:46 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 17:42:46 - INFO - logger.py:78 -   异常: 22
+2026-05-20 17:42:46 - INFO - logger.py:78 -   通过率: 0.00%
+2026-05-20 17:42:46 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-20/results/results.json
+2026-05-20 17:42:46 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:46 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:42:46 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 17:42:46 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:44:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:44:06 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 17:44:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:44:06 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 17:44:06 - INFO - logger.py:78 - 时间文件夹: 2026-05-20
+2026-05-20 17:44:06 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-20/tests
+2026-05-20 17:44:06 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-20/results
+2026-05-20 17:44:06 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:44:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:44:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:44:06 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 17:44:06 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-20/tests
+2026-05-20 17:44:06 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-20/results
+2026-05-20 17:44:06 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 17:44:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:44:06 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/output/2026-05-20/tests/conftest.py
+2026-05-20 17:44:07 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 17:44:14 - INFO - logger.py:78 - 登录成功
+2026-05-20 17:44:48 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u5192\u70df-\u5b8c\u6574\u586b\u5199\u6240\u6709\u5b57\u6bb5\u63d0\u4ea4\u6210\u529f__failed.png
+2026-05-20 17:44:52 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u6b63\u5411-\u53ea\u586b\u5199\u5fc5\u586b\u5b57\u6bb5\u63d0\u4ea4\u6210\u529f__failed.png
+2026-05-20 17:45:25 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5bf9\u8c61\u540d\u79f0\u4e3a\u7a7a__failed.png
+2026-05-20 17:45:29 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5bf9\u8c61\u53f7\u7801\u4e3a\u7a7a__failed.png
+2026-05-20 17:46:02 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u6027\u522b\u4e3a\u7a7a__failed.png
+2026-05-20 17:46:06 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u8054\u7cfb\u624b\u673a\u4e3a\u7a7a__failed.png
+2026-05-20 17:46:39 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u4eba\u5458\u7c7b\u578b\u4e3a\u7a7a__failed.png
+2026-05-20 17:46:42 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5bf9\u8c61\u540d\u79f0\u8d85\u8fc7\u957f\u5ea6\u9650\u5236__failed.png
+2026-05-20 17:47:15 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5931\u4e1a\u539f\u56e0\u8d85\u8fc7\u957f\u5ea6\u9650\u5236__failed.png
+2026-05-20 17:47:19 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u6b63\u5411-\u6240\u6709\u5c31\u4e1a\u610f\u613f\u9009\u9879\u90fd\u586b\u5199__failed.png
+2026-05-20 17:47:52 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u6309\u5bf9\u8c61\u540d\u79f0\u7cbe\u786e\u67e5\u8be2__failed.png
+2026-05-20 17:51:57 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_edit_\u6b63\u5411-\u4fee\u6539\u8054\u7cfb\u7535\u8bdd__failed.png
+2026-05-20 17:52:33 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_edit_\u6b63\u5411-\u6e05\u7a7a\u975e\u5fc5\u586b\u5b57\u6bb5\u540e\u4fdd\u5b58__failed.png
+2026-05-20 17:53:08 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_detail_\u6b63\u5411-\u67e5\u770b\u8be6\u60c5\u4fe1\u606f\u663e\u793a\u6b63\u786e__failed.png
+2026-05-20 17:53:10 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_pagination_\u6b63\u5411-\u5206\u9875\u63a7\u4ef6\u7ffb\u9875\u529f\u80fd\u6b63\u5e38__failed.png
+2026-05-20 17:53:10 - INFO - logger.py:78 - 测试执行完成，共生成 44 个结果文件
+2026-05-20 17:53:10 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:53:10 - INFO - logger.py:78 - 测试结果汇总:
+2026-05-20 17:53:10 - INFO - logger.py:78 -   总计: 44
+2026-05-20 17:53:10 - INFO - logger.py:78 -   通过: 7
+2026-05-20 17:53:10 - INFO - logger.py:78 -   失败: 1
+2026-05-20 17:53:10 - INFO - logger.py:78 -   跳过: 0
+2026-05-20 17:53:10 - INFO - logger.py:78 -   异常: 36
+2026-05-20 17:53:10 - INFO - logger.py:78 -   通过率: 15.91%
+2026-05-20 17:53:10 - INFO - logger.py:78 - 结果报告已生成: /home/mxr/e2eProject/output/2026-05-20/results/results.json
+2026-05-20 17:53:10 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:53:10 - INFO - logger.py:78 - ============================================================
+2026-05-20 17:53:10 - INFO - logger.py:78 - 自动化测试流程全部完成!
+2026-05-20 17:53:10 - INFO - logger.py:78 - ============================================================
+2026-05-20 18:02:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 18:02:06 - INFO - logger.py:78 - E2E自动化测试运行器
+2026-05-20 18:02:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 18:02:06 - INFO - logger.py:78 - 测试环境: test
+2026-05-20 18:02:06 - INFO - logger.py:78 - 时间文件夹: 2026-05-20
+2026-05-20 18:02:06 - INFO - logger.py:78 - 测试脚本目录: /home/mxr/e2eProject/output/2026-05-20/tests
+2026-05-20 18:02:06 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-20/results
+2026-05-20 18:02:06 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 18:02:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 18:02:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 18:02:06 - INFO - logger.py:78 - 开始执行测试...
+2026-05-20 18:02:06 - INFO - logger.py:78 - 测试用例目录: /home/mxr/e2eProject/output/2026-05-20/tests
+2026-05-20 18:02:06 - INFO - logger.py:78 - 结果输出目录: /home/mxr/e2eProject/output/2026-05-20/results
+2026-05-20 18:02:06 - INFO - logger.py:78 - 测试类型: all
+2026-05-20 18:02:06 - INFO - logger.py:78 - ============================================================
+2026-05-20 18:02:06 - INFO - logger.py:78 - 使用 conftest.py: /home/mxr/e2eProject/output/2026-05-20/tests/conftest.py
+2026-05-20 18:02:07 - INFO - logger.py:78 - 正在打开登录页: http://182.129.202.241:20051/business/#/login
+2026-05-20 18:02:15 - INFO - logger.py:78 - 登录成功
+2026-05-20 18:03:55 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u5192\u70df-\u5b8c\u6574\u586b\u5199\u6240\u6709\u5b57\u6bb5\u63d0\u4ea4\u6210\u529f__failed.png
+2026-05-20 18:04:29 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u6b63\u5411-\u53ea\u586b\u5199\u5fc5\u586b\u5b57\u6bb5\u63d0\u4ea4\u6210\u529f__failed.png
+2026-05-20 18:05:37 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5bf9\u8c61\u540d\u79f0\u4e3a\u7a7a__failed.png
+2026-05-20 18:06:11 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5bf9\u8c61\u53f7\u7801\u4e3a\u7a7a__failed.png
+2026-05-20 18:07:18 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u6027\u522b\u4e3a\u7a7a__failed.png
+2026-05-20 18:07:52 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u8054\u7cfb\u624b\u673a\u4e3a\u7a7a__failed.png
+2026-05-20 18:08:59 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u4eba\u5458\u7c7b\u578b\u4e3a\u7a7a__failed.png
+2026-05-20 18:09:33 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5bf9\u8c61\u540d\u79f0\u8d85\u8fc7\u957f\u5ea6\u9650\u5236__failed.png
+2026-05-20 18:11:12 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u53cd\u5411-\u5931\u4e1a\u539f\u56e0\u8d85\u8fc7\u957f\u5ea6\u9650\u5236__failed.png
+2026-05-20 18:11:45 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_add_\u6b63\u5411-\u6240\u6709\u5c31\u4e1a\u610f\u613f\u9009\u9879\u90fd\u586b\u5199__failed.png
+2026-05-20 18:11:48 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u6309\u5bf9\u8c61\u540d\u79f0\u7cbe\u786e\u67e5\u8be2__failed.png
+2026-05-20 18:11:52 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u6309\u5bf9\u8c61\u53f7\u7801\u7cbe\u786e\u67e5\u8be2__failed.png
+2026-05-20 18:11:55 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u6309\u5bf9\u8c61\u7c7b\u578b\u67e5\u8be2__failed.png
+2026-05-20 18:11:59 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u6309\u5c31\u4e1a\u72b6\u6001\u67e5\u8be2__failed.png
+2026-05-20 18:12:02 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u6309\u4efb\u52a1\u72b6\u6001\u67e5\u8be2__failed.png
+2026-05-20 18:12:05 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u591a\u6761\u4ef6\u7ec4\u5408\u67e5\u8be2__failed.png
+2026-05-20 18:12:08 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u6b63\u5411-\u91cd\u7f6e\u67e5\u8be2\u6761\u4ef6__failed.png
+2026-05-20 18:12:11 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_search_\u53cd\u5411-\u67e5\u8be2\u4e0d\u5b58\u5728\u7684\u6570\u636e__failed.png
+2026-05-20 18:12:14 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_edit_\u6b63\u5411-\u4fee\u6539\u8054\u7cfb\u7535\u8bdd__failed.png
+2026-05-20 18:12:17 - INFO - logger.py:78 - 失败截图已保存: /home/mxr/e2eProject/output/2026-05-20/results/screenshots/test_object_edit_\u6b63\u5411-\u6e05\u7a7a\u975e\u5fc5\u586b\u5b57\u6bb5\u540e\u4fdd\u5b58__failed.png

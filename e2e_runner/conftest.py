@@ -33,6 +33,15 @@ for subdir in ["", "pages", "common", "config", "datas"]:
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
+# 添加 output/{日期}/ 目录下的 pages 和 datas 到 sys.path（优先使用）
+output_base = os.environ.get('E2E_OUTPUT_BASE')
+if output_base:
+    output_path = Path(output_base)
+    for subdir in ["pages", "datas"]:
+        path = output_path / subdir
+        if path.exists() and str(path) not in sys.path:
+            sys.path.insert(0, str(path))
+
 from playwright.sync_api import sync_playwright, Browser, Page
 
 from config.settings import settings

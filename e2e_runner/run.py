@@ -76,11 +76,17 @@ def main():
 
     # 设置 pytest 运行配置
     # 通过环境变量传递 PYTHONPATH，让测试脚本能导入 e2e_runner 中的模块
-    python_path = f"{E2E_RUNNER_DIR}:{E2E_RUNNER_DIR / 'pages'}:{E2E_RUNNER_DIR / 'common'}:{E2E_RUNNER_DIR / 'config'}"
+    # 优先从 output/{日期}/ 目录读取 pages 和 datas，其次使用 e2e_runner 目录
+    output_pages = output_base / "pages"
+    output_datas = output_base / "datas"
+    python_path = f"{output_pages}:{output_datas}:{E2E_RUNNER_DIR}:{E2E_RUNNER_DIR / 'pages'}:{E2E_RUNNER_DIR / 'common'}:{E2E_RUNNER_DIR / 'config'}:{E2E_RUNNER_DIR / 'datas'}"
     if 'PYTHONPATH' in os.environ:
         os.environ['PYTHONPATH'] = python_path + ":" + os.environ['PYTHONPATH']
     else:
         os.environ['PYTHONPATH'] = python_path
+
+    # 传递 output_base 路径给 conftest.py
+    os.environ['E2E_OUTPUT_BASE'] = str(output_base)
 
     # 传递 conftest.py 路径
     os.environ['E2E_CONFTEST_PATH'] = str(E2E_RUNNER_DIR / "conftest.py")

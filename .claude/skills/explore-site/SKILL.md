@@ -139,6 +139,7 @@ triggers:
 # 页面探索记录
 
 **页面URL**：[URL]
+**route_path**：[URL路径，用于测试脚本直接跳转，如 /business/publicFacilities/chargingPile]
 **页面标题**：[页面标题]
 **面包屑导航**：[一级 > 二级 > 当前页面]
 
@@ -213,6 +214,7 @@ triggers:
 - 对当前页面及跳转页面的功能模块探索必须全面完整，覆盖testPointsRequirement.md中适用的测试点
 - 操作跳转页面时必须使用子会话（Agent工具）探索，避免主会话上下文溢出
 - 探索记录要结构化、详细，确保后续可直接用于生成测试用例
+- **必须记录 route_path**：从页面URL中提取路径部分（如 `/business/publicFacilities/chargingPile`），写入探索记录头部，供后续 test-script-generate 技能生成带跳转路径的测试用例
 - 如遇错误或无法完成的操作，记录原因并继续探索其他部分
 - **严禁在skills目录下创建任何文件、目录或安装依赖**
 - 探索完成后清理Playwright MCP产生的临时文件

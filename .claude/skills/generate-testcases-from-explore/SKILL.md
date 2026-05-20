@@ -14,30 +14,30 @@ triggers:
 
 ## 文件路径规范
 
-**所有输入输出文件统一放在 `~/e2eProject/exploreOutput/{日期时间文件夹}/` 下，严禁在skills目录下创建任何文件或目录。**
+**所有输入输出文件统一放在 `./exploreOutput/{日期时间文件夹}/` 下，严禁在skills目录下创建任何文件或目录。**
 
-- 探索记录（输入）：`~/e2eProject/exploreOutput/{日期时间文件夹}/explore_record.md`
-- 用例模板（参考）：`~/e2eProject/referenceDocument/用例模板.xlsx`
-- 测试点需求（参考）：`~/e2eProject/referenceDocument/testPointsRequirement.md`
+- 探索记录（输入）：`./exploreOutput/{日期时间文件夹}/explore_record.md`
+- 用例模板（参考）：`./referenceDocument/用例模板.xlsx`
+- 测试点需求（参考）：`./referenceDocument/testPointsRequirement.md`
 - 测试用例（输出）：
-  - Excel格式：`~/e2eProject/exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.xlsx`
-  - Markdown格式：`~/e2eProject/exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.md`
+  - Excel格式：`./exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.xlsx`
+  - Markdown格式：`./exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.md`
 
 ## 输入
 
 在开始处理前，需要用户选择要读取的探索记录文件夹：
-1. 列出 `~/e2eProject/exploreOutput/` 下所有日期时间格式的文件夹
+1. 列出 `./exploreOutput/` 下所有日期时间格式的文件夹
 2. 让用户选择要读取的文件夹
-3. 确认输入路径：`~/e2eProject/exploreOutput/{用户选择的文件夹}/explore_record.md`
+3. 确认输入路径：`./exploreOutput/{用户选择的文件夹}/explore_record.md`
 
-- **用例模板**：`~/e2eProject/referenceDocument/用例模板.xlsx` - 输出Excel必须符合此模板格式
-- **测试点需求**：`~/e2eProject/referenceDocument/testPointsRequirement.md` - 用例必须覆盖此文档中的测试点
+- **用例模板**：`./referenceDocument/用例模板.xlsx` - 输出Excel必须符合此模板格式
+- **测试点需求**：`./referenceDocument/testPointsRequirement.md` - 用例必须覆盖此文档中的测试点
 
 ## 处理流程
 
 ### 1. 读取输入
 
-- 列出 `~/e2eProject/exploreOutput/` 下所有日期时间格式的文件夹，供用户选择
+- 列出 `./exploreOutput/` 下所有日期时间格式的文件夹，供用户选择
 - 解析选中的 `explore_record.md` 中的菜单结构、页面列表、表单字段、操作记录、接口监测、异常记录
 - 读取 `用例模板.xlsx` 确认Excel的列结构
 - 读取 `testPointsRequirement.md` 确认需要覆盖的测试点
@@ -63,6 +63,7 @@ triggers:
 | 列名 | 说明 |
 |------|------|
 | 用例编号 | TC-{模块}-{序号}，如 TC-MENU-001 |
+| route_path | 页面URL路径，如 /business/publicFacilities/chargingPile，用于测试脚本直接跳转 |
 | 所属产品 | 根据探索记录推断的产品名称 |
 | 所属模块 | 完整菜单路径，如 /一级菜单/二级菜单/页面(#菜单ID) |
 | 用例名称 | 【{子模块}】验证{具体验证点}，如 【案件列表-数据列表模块】验证批量删除功能正确性 |
@@ -89,7 +90,7 @@ triggers:
 - Excel格式严格对齐 `用例模板.xlsx` 的列结构（用例编号、所属产品、所属模块、用例名称、前置条件、步骤、预期）
 - Markdown格式包含相同内容，用于test-script-generate技能的输入
 - 文件名格式：`{YYYYMMDD_HHMMSS}_测试用例.xlsx` 和 `{YYYYMMDD_HHMMSS}_测试用例.md`
-- 保存到输入文件所在的同一文件夹：`~/e2eProject/exploreOutput/{用户选择的文件夹}/`
+- 保存到输入文件所在的同一文件夹：`./exploreOutput/{用户选择的文件夹}/`
 
 #### Markdown文件格式要求
 
@@ -98,19 +99,22 @@ Markdown文件应包含测试用例表格，格式示例：
 ```markdown
 # 测试用例
 
+**route_path**: /business/publicFacilities/chargingPile
+
 ## 用例列表
 
-| 用例编号 | 所属产品 | 所属模块 | 用例名称 | 前置条件 | 步骤 | 预期 |
-|---------|---------|---------|---------|---------|-----|-----|
-| TC-MENU-001 | 产品名称 | /一级菜单/二级菜单 | 【子模块】验证xxx | 条件1 | 1. 步骤1\n2. 步骤2 | 1. 预期1\n2. 预期2 |
+| 用例编号 | route_path | 所属产品 | 所属模块 | 用例名称 | 前置条件 | 步骤 | 预期 |
+|---------|------------|---------|---------|---------|---------|-----|-----|
+| TC-MENU-001 | /business/... | 产品名称 | /一级菜单/二级菜单 | 【子模块】验证xxx | 条件1 | 1. 步骤1\n2. 步骤2 | 1. 预期1\n2. 预期2 |
 ```
 
-表格列依次为：用例编号、所属产品、所属模块、用例名称、前置条件、步骤、预期
+表格列依次为：用例编号、route_path、所属产品、所属模块、用例名称、前置条件、步骤、预期
+**route_path** 从探索记录的"页面URL"字段提取路径部分，写入文件头部供 test-script-generate 使用
 
 ## 输出
 
-- 测试用例Excel：`~/e2eProject/exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.xlsx`
-- 测试用例Markdown：`~/e2eProject/exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.md`（与Excel内容相同）
+- 测试用例Excel：`./exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.xlsx`
+- 测试用例Markdown：`./exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.md`（与Excel内容相同）
 - 输出用例统计摘要：用例总数、各模块用例数、是否覆盖全部测试点
 
 ## 注意事项
@@ -121,4 +125,6 @@ Markdown文件应包含测试用例表格，格式示例：
 - 用例要可独立执行，不依赖其他用例的状态
 - 所属模块要写完整菜单路径，便于定位
 - 用例名称使用【子模块】前缀，清晰标识验证范围
+- **必须提取 route_path**：从探索记录的"页面URL"字段提取路径部分，写入文件头部和每条用例的 route_path 列，供 test-script-generate 生成带跳转路径的测试脚本
 - **严禁在skills目录下创建任何文件或目录**
+- **输出文件仅仅包含测试用例，不包含测试脚本**
