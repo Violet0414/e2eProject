@@ -32,10 +32,10 @@ python run.py \
       --env test \
       --date 2026-05-19 \
       --test-type all \
-      --username Sn_admin \
-      --password Smart@123456 \
-      --sms-code 34287 \
-      --base-url http://182.129.202.241:20051 \
+      --username 账号 \
+      --password 密码 \
+      --sms-code 验证码 \
+      --base-url 网址 \
       --login-url /business/#/login
 
 使用现有框架运行测试脚本
