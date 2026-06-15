@@ -24,6 +24,15 @@ WORK_FLOW_explore_pipeline 根据探索结果生成测试用例工作流
 
 
 
+WORK_FLOW_explore_pipeline技能的输入内容：
+
+URL(需要探索的页面)：http://xxxxxxx/business/#/emphasis/index
+  账号：xxx
+  密码：xxx
+  验证码：xxx
+
+
+
 测试用例生成完成后可执行test-script-generate技能生成测试脚本
 
 脚本生成完毕后可直接执行
