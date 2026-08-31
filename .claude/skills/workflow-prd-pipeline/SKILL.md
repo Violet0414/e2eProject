@@ -1,6 +1,6 @@
 ---
 name: e2e-pipeline
-description: E2E测试用例生成流水线 - 依次执行需求拆分→测试点提取→测试点评审→用例生成→导出Excel，每步独立子会话
+description: 测试用例生成流水线 - 依次执行需求拆分→测试点提取→测试点评审→用例生成→导出Excel，每步独立子会话
 triggers:
   - "E2E流水线"
   - "全流程"
@@ -8,7 +8,7 @@ triggers:
   - "端到端"
 ---
 
-# E2E测试用例生成流水线
+# 测试用例生成流水线
 
 按顺序自动执行完整的测试用例生成流程，每个步骤在独立子会话（Agent）中运行，避免上下文过长。
 
@@ -72,7 +72,7 @@ triggers:
 
 - **技能文件**：`.claude/skills/test-point-extract/SKILL.md`
 - **输入文件**：`./output/{当前日期}/功能点列表.md`（步骤1产出）
-- **参考文件**：`./referenceDocument/testPointsRequirement.md`
+- **参考文件**：`./files/templates/test_points_requirement.md`
 - **输出文件**：`./output/{当前日期}/测试点清单.md`
 
 子会话 prompt：
@@ -81,7 +81,7 @@ triggers:
 
 1. 先读取技能定义文件：./.claude/skills/test-point-extract/SKILL.md，理解其中的处理规则和输出格式
 2. 读取输入文件：./output/{当前日期}/功能点列表.md
-3. 读取参考文件：./referenceDocument/testPointsRequirement.md
+3. 读取参考文件：./files/templates/test_points_requirement.md
 4. 严格按照技能定义的处理规则，基于功能点列表和参考文件提取测试点
 5. 将结果写入输出文件：./output/{当前日期}/测试点清单.md（如目录不存在则先创建）
 ```
@@ -90,7 +90,7 @@ triggers:
 
 - **技能文件**：`.claude/skills/test-point-review/SKILL.md`
 - **输入文件**：`./output/{当前日期}/测试点清单.md`（步骤2产出）、`./output/{当前日期}/功能点列表.md`（步骤1产出）
-- **参考文件**：`./referenceDocument/testPointsRequirement.md`
+- **参考文件**：`./files/templates/test_points_requirement.md`
 - **输出文件**：`./output/{当前日期}/测试点评审报告.md`
 
 子会话 prompt：
@@ -100,7 +100,7 @@ triggers:
 1. 先读取技能定义文件：./.claude/skills/test-point-review/SKILL.md，理解其中的处理规则和输出格式
 2. 读取输入文件：./output/{当前日期}/测试点清单.md
 3. 读取功能点列表用于交叉比对：./output/{当前日期}/功能点列表.md
-4. 读取参考文件：./referenceDocument/testPointsRequirement.md
+4. 读取参考文件：./files/templates/test_points_requirement.md
 5. 严格按照技能定义的处理规则进行评审
 6. 将结果写入输出文件：./output/{当前日期}/测试点评审报告.md（如目录不存在则先创建）
 ```
@@ -109,7 +109,7 @@ triggers:
 
 - **技能文件**：`.claude/skills/test-case-generate/SKILL.md`
 - **输入文件**：`./output/{当前日期}/测试点清单.md`（步骤2产出）
-- **参考文件**：`./referenceDocument/testPointsRequirement.md`
+- **参考文件**：`./files/templates/test_points_requirement.md`
 - **输出文件**：`./output/{当前日期}/测试用例.md`
 
 子会话 prompt：
@@ -118,7 +118,7 @@ triggers:
 
 1. 先读取技能定义文件：./.claude/skills/test-case-generate/SKILL.md，理解其中的处理规则和输出格式
 2. 读取输入文件：./output/{当前日期}/测试点清单.md
-3. 读取参考文件：./referenceDocument/testPointsRequirement.md
+3. 读取参考文件：./files/templates/test_points_requirement.md
 4. 严格按照技能定义的处理规则，基于测试点清单和参考文件生成测试用例
 5. 将结果写入输出文件：./output/{当前日期}/测试用例.md（如目录不存在则先创建）
 ```

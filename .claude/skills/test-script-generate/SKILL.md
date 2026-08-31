@@ -1,410 +1,360 @@
 ---
 name: test-script-generate
-description: 测试脚本生成 - 根据测试用例.md和testScriptTemplate.md规范生成Playwright自动化测试脚本
+description: 测试脚本生成 - 根据"测试用例.md"、"record_operating_steps.py"生成符合项目规范的Playwright自动化测试脚本（⚠️ 必须优先使用record_operating_steps.py中的定位器）
 triggers:
   - "生成测试脚本"
   - "测试脚本生成"
   - "生成脚本"
   - "写测试脚本"
+  - "根据探索输出生成测试"
+  - "test-script-generate"
 ---
 
 # 测试脚本生成
 
-将测试用例.md转化为符合 e2e_runner 项目规范的自动化测试脚本，严格遵循testScriptTemplate.md中定义的模板结构和编码规范。
+将提供的"测试用例.md"、"record_operating_steps.py"转化为符合 pw-e2e-suite 项目规范的自动化测试脚本，严格遵循 files/templates/test_script_template.md 中定义的模板结构和编码规范。
+
+## ⚠️【强制前置检查清单】—— 必须按顺序完成，不得跳过
+
+在开始生成任何代码之前，必须完成以下检查和文件读取：
+
+- [ ] **1. 完整扫描 files/templates 目录**：使用 Glob 工具扫描输出目录，列出所有发现的文件
+- [ ] **2. 确认找到`record_operating_steps.py`**：必须优先查找并读取此文件（如果存在）
+- [ ] **3. 提取`record_operating_steps.py`中所有定位器**：分析录制代码，提取所有 get_by_role、get_by_text、locator 的使用模式
+- [ ] **4. 读取`测试用例.md`**：最后读取测试用例文件
+- [ ] **6. 阅读模板文件**：完整阅读`files/templates/test_script_template.md`文件
+
+**⚠️ 重要提示：如果发现 `record_operating_steps.py` 存在，必须优先使用其中的定位器，不得以任何理由忽略！**
 
 ## 核心要求
 
-1. **输出目录结构与 e2e_runner 兼容**：生成的测试脚本必须输出到 `output/{日期}/tests/` 目录，供 e2e_runner 的 pytest 运行器读取执行
-2. **跳转路径处理**：当测试用例需要跳转到非默认页面时，必须从测试用例中读取跳转路径（`route_path`）并写入测试数据，测试用例执行时使用该路径进行导航
+1. **输出目录结构与项目兼容**：生成的测试脚本直接输出到项目的 `pages/`、`datas/`、`tests/` 目录，供 pytest 运行器读取执行
+2. **URL导航方式**：所有测试用例统一使用 `page_open_url()` 通过 URL 直接进入目标页面
+3. **route_path 必须填写**：从`record_operating_steps.py`中提取 `route_path` 字段，写入页面对象
+4. **⚠️ 元素定位器优先级（强制执行）**：当存在多个定位器来源时，必须严格按以下优先级使用：
+   - **🔴 最高优先级（强制优先）**：`record_operating_steps.py` 中的定位器（实际录制的操作代码）—— 如果此文件存在，必须优先使用，不得绕过
+   - **🟡 次优先级**：`explore_record.md` 中的定位器（探索记录）
+   - **🟢 最后**：根据用例合理推断
+5. **下拉选择方式**：根据实际情况选择合适的方式，参考`record_operating_steps.py`
+6. **表单填充不区分新增/编辑选择器**：`fill_form_data` 方法中新增和编辑复用相同定位器（实际项目中新增编辑弹窗结构一致）
+7. **严格按照模板格式生成**：生成的页面对象、测试数据、测试用例文件必须严格遵循 `files/templates/test_script_template.md` 中定义的结构和编码规范
+8. **必须参考实际项目文件**：所有生成的文件必须严格遵循 `pages/population_map/community_management/community_service_facility_page.py`、`datas/population_map/community_management/community_service_facility_data.py`、`tests/population_map/community_management/test_community_service_facility.py` 的结构、命名规范和编码风格
+9. **使用BaseCRUDTestTemplate基类**：测试用例类必须继承 `BaseCRUDTestTemplate` 基类，而不是直接使用 `ValidationMixin`
 
 ## 输入
 
-- **测试用例.md**：从以下位置搜索并由用户选择：
-  - `./output/{当前日期}/` 文件夹下的 `.md` 文件
-  - `./exploreOutput/{当前日期}/` 文件夹下的 `.md` 文件
-- **测试脚本模板**：`./referenceDocument/testScriptTemplate.md`，定义脚本编写规范
-- **输出目录**：`./output/{当前日期}/`（与测试用例.md同级目录，"当前日期"格式为YYYY-MM-DD，如2026-05-15）
-
-## 输出文件结构
-
-每个模块生成3个文件，按端类型分子目录：
-
-| 序号 | 文件 | 路径 |
-|------|------|------|
-| 1 | 页面对象 | `output/{当前日期}/pages/{端目录}/{module_name}.py` |
-| 2 | 测试数据 | `output/{当前日期}/datas/{端目录}/{module_name}_data.py` |
-| 3 | 测试用例 | `output/{当前日期}/tests/{端目录}/test_{module_name}.py` |
-
-**重要**：测试用例文件 `test_{module_name}.py` 最终被 e2e_runner 的 pytest 运行器在 `output/{日期}/tests/` 目录下执行，因此必须在文件开头正确设置 PYTHONPATH 导入路径。
-
-## 跳转路径判断与处理
-
-### 判断逻辑
-
-在解析测试用例时，统一使用菜单导航 `goto_module()` 进入目标页面：
-
-| 条件 | 处理方式 | 说明 |
-|------|---------|------|
-| 所有测试场景 | `goto_module()` | 统一使用菜单导航进入目标页面 |
-| route_path字段 | 仅记录信息 | 用于日志追踪，不用于页面跳转 |
-
-### 跳转路径读取
-
-从测试用例文件中提取跳转路径，仅用于信息记录：
-
-1. **测试用例表格中的 `route_path` 字段**（显式声明）
-2. **测试用例表格中的 `页面URL` 或 `URL` 字段**
-3. **探索记录中的"页面URL"字段**
-
-### 测试用例中使用菜单导航
-
-所有测试用例统一使用 `goto_module()` 通过菜单导航进入目标页面：
-
-```python
-def test_charging_pile_add(self, test_case):
-    """充电桩新增测试"""
-    test_data = test_case["data"]
-    route_path = test_case.get("route_path")  # 仅用于日志记录
-
-    with allure.step("进入充电桩页面"):
-        # 统一使用菜单导航
-        self.charging_pile_page.goto_module()
-        self.charging_pile_page.page.reload()
-```
+- **测试用例文件**：从 `./output/{当天日期}/测试用例.md` 目录搜索最新的测试用例 `.md` 文件
+- **探索记录文件**：`explore_record.md`（如果存在）
+- **录制代码文件**：`./files/templates/record_operating_steps.py`（如果存在）—— **元素定位器优先使用此文件中的**
+- **测试脚本模板**：`./files/templates/test_script_template.md`，定义脚本编写规范
+- **输出目录**：项目根目录下对应的 `pages/`、`datas/`、`tests/` 目录
 
 ## 处理流程
 
-### 第一步：搜索并选择测试用例文件
+### 第一步：强制扫描并确认所有输入文件（必须完成）
 
-执行以下命令搜索可用的 `.md` 文件：
-
-```bash
-# 搜索 output 目录下当前日期的 md 文件
-find ./output -path "*/$(date +%Y-%m-%d)/*.md" -type f 2>/dev/null
-
-# 搜索 exploreOutput 目录下当前日期的 md 文件
-find ./exploreOutput -path "*/*$(date +%Y%m%d)*/*.md" -type f 2>/dev/null
+使用 Glob 工具扫描 output 目录，列出所有发现的文件：
+```
+例如输出：
+- output/2026-07-21/测试用例.md
+- output/2026-07-21/record_operating_steps.py  ⚠️ 必须标记此文件！
+- output/2026-07-21/explore_record.md
 ```
 
-使用 AskUserQuestion 工具让用户选择使用哪个文件：
+**如果发现 record_operating_steps.py，必须立即读取并标记为"优先使用"！**
 
+### 第二步：解析 record_operating_steps.py（如果存在 - 必须优先处理）
+
+完整读取 record_operating_steps.py，提取并记录以下信息：
+- 搜索区域使用的定位器模式
+- 按钮点击使用的定位器
+- 表单输入使用的定位器（注意 nth() 索引）
+- 下拉选择使用的定位器
+- 单选按钮使用的定位器
+- 文本域使用的定位器
+
+**⚠️ 提取示例**：
 ```python
-questions = [
-    {
-        "header": "选择用例文件",
-        "question": "请选择要使用的测试用例文件：",
-        "multiSelect": False,
-        "options": [
-            {"label": "文件1路径", "description": "文件描述"},
-            {"label": "文件2路径", "description": "文件描述"},
-        ]
-    }
-]
+# 从 record_operating_steps.py 中提取的定位器可以直接内联在 fill_form_data 方法中使用
+page.get_by_role("textbox", name="请输入").nth(1)  # 项目名称
+page.get_by_role("textbox", name="请选择区县").click()  # 区县下拉
+page.get_by_role("listitem").filter(has_text="船山区").click()
 ```
 
-读取用户选择的测试用例 `.md` 文件，解析用例表格，提取：
-- 模块路径（用于确定端类型和菜单结构）
-- 用例编号、名称、步骤、预期
-- 用例类型（正向/反向/UI验证）
+### 第三步：解析其他输入文件
 
-### 第二步：读取模板文件
+读取并解析以下关键信息：
+- **route_path**：从 record_operating_steps.py 中提取
+- **页面标题/模块中文名**：从页面标题或菜单路径获取
+- **实体中文名**：从用例中提取（如"社区办公"、"项目"等）
+- **字段信息**：表单字段、搜索字段、表格字段等，从 record_operating_steps.py 提取
+- **元素定位器**：从 record_operating_steps.py 提取（⚠️ 优先使用 record_operating_steps.py 中的定位器，若不存在则使用 explore_record.md 中的定位器，若仍不存在则根据用例合理推断）
 
-读取 `./referenceDocument/testScriptTemplate.md`，确认：
-- 页面对象类结构和方法签名
-- 测试数据字典必填字段
-- 测试用例参数化模式
-- ValidationMixin使用规则
-- 编码规范和断言工具使用
+### 第四步：读取项目相关文件
 
-### 第三步：创建输出目录
+读取以下项目文件以了解项目结构和规范：
+1. **files/templates/test_script_template.md**：确认模板结构和编码规范
+2. **pages/base_page.py**：了解基类提供的方法
+3. **config/settings.py**：了解端配置和 fixture 配置
+4. **common/constants.py**：了解常量定义
+5. **tests/base_crud_template.py**：了解基类模板的结构和要求
+6. **参考实际项目文件**：pages/population_map/community_management/community_service_facility_page.py、datas/population_map/community_management/community_service_facility_data.py、tests/population_map/community_management/test_community_service_facility.py
+
+### 第五步：确定端类型和模块信息
+
+根据页面URL或菜单路径确定端类型：
+
+| 路径关键词    | 端目录 | 端中文名 | URL 特征 | Fixture |
+|----------|-------|---------|---------|---------|
+| 人口地图     | population_map | 人口地图 | aigc.cqzhgz.cn | population_map_page |
+| 民生服务管理后台 | admin | 民生服务管理后台 | 民生服务相关 | ms_admin_page |
+| 民生服务企业端  | company | 民生服务企业端 | 企业端相关 | ms_company_page |
+| 决策指挥系统   | decision_command | 决策指挥系统 | 182.129.202.48 | decision_command_page |
+| 默认       | population_map | 人口地图 | 未匹配任何路径 | population_map_page |
+
+提取以下关键信息：
+- `route_path`：页面路由路径
+- `模块中文名`：如"项目管理"
+- `实体中文名`：如"项目"
+- `module_name`：模块英文标识（下划线风格），如 `community_office`、`project`
+- `PageClassName`：页面对象类名（大驼峰），如 `CommunityOfficePage`、`ProjectPage`
+- `ENTITY`：实体英文大写（数据常量前缀），如 `COMMUNITY_OFFICE`、`PROJECT`
+- `NAME_FIELD`：名称字段，如 `community_office_name`、`project_name`
+- `端目录`、`端中文名`：根据上表确定
+- `page_fixture`：根据端类型确定
+
+### 第六步：创建输出目录
+
+如果目标目录不存在，先创建：
 
 ```bash
-mkdir -p output/{当前日期}/pages/admin
-mkdir -p output/{当前日期}/pages/company
-mkdir -p output/{当前日期}/pages/citizen
-mkdir -p output/{当前日期}/datas/admin
-mkdir -p output/{当前日期}/datas/company
-mkdir -p output/{当前日期}/datas/citizen
-mkdir -p output/{当前日期}/tests/admin
-mkdir -p output/{当前日期}/tests/company
-mkdir -p output/{当前日期}/tests/citizen
+mkdir -p pages/{端目录}
+mkdir -p datas/{端目录}
+mkdir -p tests/{端目录}
 ```
 
-### 第四步：生成页面对象
+### 第七步：生成页面对象
 
-文件：`output/{当前日期}/pages/{端目录}/{module_name}.py`
+文件：`pages/{端目录}/{module_name}_page.py`
 
-根据模板中的页面对象模板生成，需要：
+**页面对象结构**：参照模板文件 `files/templates/test_script_template.md`
 
-1. **文件头**：使用 `"""{模块中文名}页面元素和操作"""` 格式的模块文档字符串
-2. **继承 BasePage**：`from pages.base_page import BasePage`
+1. **类定义与初始化**：
+```python
+class {PageClassName}(BasePage):
+    def __init__(self, page: Page):
+        super().__init__(page)
+        self.base_url = settings.{端类型}_side_url  # 如 population_map_side_url
+        self.table_operate = TableOperate(page)
+        self.dropdown_selector = DropdownSelector(page)
+```
+
+2. **定义 ROUTE_PATH 常量**：
+```python
+ROUTE_PATH: str = "/business/communityManagement/communityOffice"  # 从 record_operating_steps.py 获取
+```
+
 3. **元素选择器区域**（用 `# region` / `# endregion` 包裹）：
-   - 按钮选择器：ADD_BUTTON、SEARCH_BUTTON、RESET_BUTTON、DIALOG_CONFIRM_BUTTON、WIN_TITLE_NAME
-   - 表单字段选择器：命名规则 `SELECTOR_{字段大写英文}`
-     - 文本输入框：`'input[placeholder="请输入{字段中文名}"]'`
-     - 下拉选择框：`'input[placeholder="请选择{字段中文名}"]'`
-     - 文本域：`'textarea[placeholder="请输入{字段中文名}"]'`
-     - 上传按钮：`'button:visible:has-text("点击上传")'`
-   - 搜索区域选择器：`SELECTOR_SEARCH_{字段大写英文}`
-4. **私有填充方法**：`_fill_{field_name}(self, value: str)` —— 内部判断 `if value is not None` 再填充
-5. **私有选择方法**：`_select_{field_name}(self, option_index, elem_index=None)` —— 内部判断 `if option_index is not None` 再选择，支持 `elem_index` 参数
-6. **上传方法**：`upload_attachment(self, file_path)` —— 内部判断 `if file_path is not None`，使用 `self.file_uploader.upload_el_file()`
-7. **菜单导航**：`goto_module()` —— 使用 `self.navigate_menu(level1=, level2=, level3=)`
-8. **组合业务方法**：`add_{entity}(self, {param_list})` —— 内部调用 `self.open_add_dialog("弹窗标题")`，按表单字段顺序调用私有方法
-9. **提交方法**：`submit_form()` —— 调用 `self.click(self.DIALOG_CONFIRM_BUTTON)`
-10. **等待窗口关闭**：`wait_win_closed()` —— 调用 `self.wait_windows_closed(self.WIN_TITLE_NAME, timeout=20000)`
-11. **搜索验证**：`is_column_exist(column_name, timeout=15000)` —— 调用 `self.table_operate.search_in_list()`
+   - 弹窗标题常量：`DIALOG_TITLE_ADD`、`DIALOG_TITLE_EDIT`、`DIALOG_TITLE_DETAIL`（如果有）
+   - 按钮：`BTN_*` 前缀，使用 lambda 定义（严格参考实际项目文件）
+   - 表格操作：`TABLE_BODY_ROW`、`BTN_TABLE_EDIT`、`BTN_TABLE_DELETE`、`BTN_TABLE_DETAIL`
+   - 搜索区域：`SEARCH_*` 前缀
+   - 表单字段：`FORM_*` 前缀
 
-**渐进式生成策略**：先读取用例，识别所有需要的方法，每个方法单独实现。
+4. **页面导航方法**：
+```python
+def page_open_url(self):
+    """打开页面"""
+    self.open_url(url=self.ROUTE_PATH)
+    return self
+```
 
-### 第五步：生成测试数据
+5. **表单填充方法**：
+```python
+def fill_form_data(self, data: Dict) -> None:
+    """
+    批量填充新增/编辑表单，新增编辑复用定位器
+    :param data: 表单键值对字典
+    """
+    # 对每个字段判断 if "field" in data and data["field"] is not None，再执行操作
+    # 直接内联使用定位器，不通过 prefix 区分新增编辑
+    # 严格参考实际项目文件中的实现方式
+```
 
-文件：`output/{当前日期}/datas/{端目录}/{module_name}_data.py`
+6. **submit_form 方法**：
+```python
+def submit_form(self, selector=None):
+    """提交表单"""
+    self.click(selector=selector, force=True)
+    self.wait_for_load_state("domcontentloaded")
+```
 
-根据模板中的测试数据模板生成：
+7. **业务操作方法**：
+   - `search(search_data: Dict = None, timeout: int = 15000)`：搜索方法，返回数量
+   - `add_data_operation(data: Dict)`：新增方法（点击新增、等待弹窗、填充表单）
+   - `edit_first_row(edit_data: Dict)`：编辑第一行
+   - `delete_first() -> bool`：删除第一行
+   - `view_first_row_detail() -> None`：查看第一行详情
+   - `get_form_field_values() -> dict`：获取表单字段值
+   - `fill_search_fields(search_data: Dict) -> None`：填充搜索条件
+   - `get_search_dropdown_locator_map() -> Dict`：获取搜索下拉定位器映射
+   - `get_add_form_dropdown_locator_map() -> Dict`：获取新增表单下拉定位器映射
+   - `wait_win_closed(dialog_name: str = None)`：等待弹窗关闭
+   - `verify_search_fields_cleared(poll_timeout: int = 3000) -> list`：校验搜索条件已清空
+   - `get_dropdown_options(dropdown_trigger_locator) -> list`：获取下拉框选项
 
-1. **导入**：
-   - `import os`
-   - `from common.data_generation import fake_data`
-   - `from config.settings import TEST_FILES_DIRECTORY_PATH`
-   - `from pages.{端目录}.{module_name} import {PageClassName}`
-2. **常量定义**：反向-超长等特殊场景标题
-3. **数据组织**：按功能模块分组，如 `{ENTITY}_ADD_TEST_DATA`、`{ENTITY}_SEARCH_TEST_DATA`、`{ENTITY}_EDIT_TEST_DATA`
-4. **每条数据必填字段**：
+### 第八步：生成测试数据
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `title` | str | 是 | 用例中文标题，格式：`类型-场景描述`，如 `冒烟-完整填写`、`正向-只填必填`、`反向-名称为空` |
-| `type` | str | 是 | 可选值：`smoke` / `positive` / `negative` |
-| `expect_success` | bool | 是 | 正向：`True`，反向：`False` |
-| `route_path` | str | 否 | 跳转路径，仅记录信息用于日志追踪，测试用例执行时统一使用 `goto_module()` |
-| `data` | dict | 是 | 所有业务字段放在此字典内 |
-| `validation_info` | dict | 反向必填 | 仅在反向测试（字段为空/格式错误）时使用 |
+文件：`datas/{端目录}/{module_name}_data.py`
 
-5. **`route_path` 字段说明**：
+**数据结构**：参照模板文件 `files/templates/test_script_template.md` 和实际项目数据文件
 
-| 场景 | 写法 | 说明 |
+1. **弹窗标题和期望常量**：
+```python
+{ENTITY}_NAME_FIELD = "{name_field}"
+{ENTITY}_EXPECT_DIALOG_TITLE_ADD = "新增"
+{ENTITY}_EXPECT_DIALOG_TITLE_EDIT = "编辑"
+{ENTITY}_EXPECT_DIALOG_TITLE_DETAIL = "详情"
+{ENTITY}_EXPECT_TABLE_HEADERS = [...]
+{ENTITY}_EXPECT_DETAIL_FIELDS = [...]
+{ENTITY}_EXPECT_FORM_PLACEHOLDERS = {{...}}
+{ENTITY}_EXPECT_FORM_FIELD_LABELS = [...]
+{ENTITY}_REQUIRED_FIELDS = [...]
+{ENTITY}_TABLE_FIELD_MAPPING = {{...}}
+{ENTITY}_DETAIL_FIELD_MAPPING = {{...}}
+{ENTITY}_SEARCH_DROPDOWN_CONFIGS = [...]
+{ENTITY}_ADD_FORM_DROPDOWN_CONFIGS = [...]
+{ENTITY}_RESET_TEST_DATA = [...]
+{ENTITY}_FIELD_LIMIT_CONFIG = [...]
+{ENTITY}_INPUT_AUTO_CORRECTION_CONFIG = [...]
+```
+
+2. **新增测试数据** `{ENTITY}_ADD_TEST_DATA`：
+   - 完整填写全部字段并提交
+   - 只填写必填字段提交
+   - 必填项不填写提交验证（期望失败）
+   - 各种字段验证场景
+
+3. **搜索测试数据** `{ENTITY}_SEARCH_TEST_DATA`：
+   - 名称单条件精准搜索
+   - 名称单条件模糊搜索
+   - 组合条件搜索
+   - 搜索不存在的数据
+
+4. **编辑测试数据** `{ENTITY}_EDIT_TEST_DATA`：
+   - 编辑全部字段
+   - 编辑单字段
+   - 编辑为空验证
+   - 清空非必填字段
+
+### 第九步：生成测试用例
+
+文件：`tests/{端目录}/test_{module_name}.py`
+
+**测试用例结构**：参照模板文件 `files/templates/test_script_template.md` 和实际项目测试文件
+
+1. **测试类定义**：
+```python
+@allure.feature("{端中文名}-{模块中文名}")
+class Test{PageClassName}(BaseCRUDTestTemplate):
+    """{模块中文名}测试套件，覆盖正向/反向场景"""
+
+    # region ====== 重写父类核心配置（必填） ======
+    PAGE_CLASS = {PageClassName}  # 页面对象类
+    ALLURE_FEATURE_NAME = "{端中文名}-{模块中文名}"  # allure feature名称
+
+    ADD_TEST_DATA = {ENTITY}_ADD_TEST_DATA  # 新增测试数据
+    SEARCH_TEST_DATA = {ENTITY}_SEARCH_TEST_DATA  # 搜索测试数据
+    EDIT_TEST_DATA = {ENTITY}_EDIT_TEST_DATA  # 编辑测试数据
+
+    EXPECT_TABLE_HEADERS = {ENTITY}_EXPECT_TABLE_HEADERS  # 表格预期列
+    EXPECT_DETAIL_FIELDS = {ENTITY}_EXPECT_DETAIL_FIELDS  # 详情预期字段
+
+    EXPECT_DIALOG_TITLE_ADD = {ENTITY}_EXPECT_DIALOG_TITLE_ADD  # 新增弹窗预期标题
+    EXPECT_DIALOG_TITLE_EDIT = {ENTITY}_EXPECT_DIALOG_TITLE_EDIT  # 编辑弹窗预期标题
+    EXPECT_DIALOG_TITLE_DETAIL = {ENTITY}_EXPECT_DIALOG_TITLE_DETAIL  # 详情弹窗预期标题
+
+    EXPECT_FORM_PLACEHOLDERS = {ENTITY}_EXPECT_FORM_PLACEHOLDERS  # 新增表单默认提示
+    EXPECT_FORM_FIELD_LABELS = {ENTITY}_EXPECT_FORM_FIELD_LABELS  # 新增表单字段标签
+    REQUIRED_FIELDS = {ENTITY}_REQUIRED_FIELDS  # 新增表单必填项
+    SEARCH_DROPDOWN_CONFIGS = {ENTITY}_SEARCH_DROPDOWN_CONFIGS  # 搜索下拉配置项
+    ADD_FORM_DROPDOWN_CONFIGS = {ENTITY}_ADD_FORM_DROPDOWN_CONFIGS  # 新增表单下拉配置项
+    RESET_TEST_DATA = {ENTITY}_RESET_TEST_DATA  # 重置测试数据
+    FIELD_LIMIT_CONFIG = {ENTITY}_FIELD_LIMIT_CONFIG  # 输入框长度限制配置项
+    INPUT_AUTO_CORRECTION_CONFIG = {ENTITY}_INPUT_AUTO_CORRECTION_CONFIG  # 输入框自动修正配置项
+
+    TABLE_FIELD_MAPPING = {ENTITY}_TABLE_FIELD_MAPPING  # 表格字段映射配置
+    DETAIL_FIELD_MAPPING = {ENTITY}_DETAIL_FIELD_MAPPING  # 详情字段映射配置
+
+    NAME_FIELD = {ENTITY}_NAME_FIELD
+    # 可选配置
+    DYNAMIC_FIELDS = {{
+        "id_card": fake_data.id_card(),
+        "phone": fake_data.phone(),
+    }}
+    # endregion
+```
+
+2. **测试用例组织**：按照 story 分类
+   - 全流程冒烟验证
+   - 弹窗对话框交互验证
+   - 新增表单规则与提交验证
+   - 编辑表单回填与更新验证
+   - 列表查询分页与表格交互验证
+   - 详情弹窗字段显示验证
+   - 删除操作逻辑验证
+
+## 编码规范（严格遵循 - 基于实际项目）
+
+⚠️ **核心优先原则（第0条）**：如果存在 `files/templates/record_operating_steps.py`，所有元素定位器必须优先使用录制代码中的内容，不得自行推断。特别注意：
+   - `get_by_role()` 的 name 参数必须与录制一致
+   - `nth()` 索引必须与录制一致
+   - 下拉选择方式必须与录制一致
+
+1. **测试数据全部用 Python 字典列表**，禁止 YAML/JSON
+2. **每条测试数据必须包含 `type` 字段**（`POSITIVE`/`NEGATIVE`）
+3. **页面对象必须继承 `BasePage`**，通过 `self.page` 访问 Playwright Page
+4. **唯一数据用 `fake_data.random_4bit_str()`** 生成随机后缀
+5. **异常测试使用 `expected_error_text` 列表或字符串**
+6. **页面对象的按钮选择器使用 lambda 定义**：`BTN_ADD = lambda self: self.page.get_by_role("button", name="新增")  # noqa`
+7. **页面对象的表单定位器可以定义为常量**，也可以直接内联在 `fill_form_data` 方法中使用
+8. **页面对象方法内部判断 `if "field" in data and data["field"] is not None:` 再执行操作**
+9. **URL导航统一使用 `page_open_url()` 方法**
+10. **搜索操作前先点重置**：避免上一次搜索条件残留
+11. **优先使用 `wait_for_load_state`/`wait_element_appear`/`wait_element_disappear`**，避免硬编码 `time.sleep()`
+12. **测试类命名**：大驼峰，如 `TestCommunityServiceFacility`
+13. **测试方法命名**：snake_case，如 `test_lifecycle_smoke`
+14. **页面对象的方法名使用 snake_case 风格**
+15. **测试类继承 `BaseCRUDTestTemplate`**，重写配置常量即可
+16. **使用 `MARKER` 常量标记测试数据**，便于清理
+17. **必须初始化 table_operate 和 dropdown_selector**：
+    ```python
+    self.table_operate = TableOperate(page)
+    self.dropdown_selector = DropdownSelector(page)
+    ```
+
+## 输出文件清单
+
+每个模块生成 3 个文件：
+
+| 文件 | 路径 | 说明 |
 |------|------|------|
-| 所有测试场景 | 不填或 `None` | 测试用例统一使用 `goto_module()` 通过菜单导航 |
-| 记录跳转路径 | `/business/xxx/yyy` | 仅用于日志追踪，不用于实际页面跳转 |
+| 页面对象 | `pages/{端目录}/{module_name}_page.py` | 继承 BasePage，封装选择器和操作方法 |
+| 测试数据 | `datas/{端目录}/{module_name}_data.py` | Python 字典列表，参数化驱动 |
+| 测试用例 | `tests/{端目录}/test_{module_name}.py` | pytest + allure + BaseCRUDTestTemplate |
 
-6. **`validation_info` 字典结构**（反向测试专用）：
+## ⚠️ 最后验证（必须完成）
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `selector` | str | blur/submit必填 | 引用页面对象类常量，如 `CaseRegistrationPage.SELECTOR_CASE_TITLE`。upload类型不需要 |
-| `expected_error_text` | str | 是 | 预期的错误提示文本 |
-| `trigger` | str | 是 | `"blur"`（失焦）/ `"submit"`（提交）/ `"upload"`（上传） |
+1. **验证定位器优先级（最重要）**：
+   - 如果存在 files/templates/record_operating_steps.py，检查生成的页面对象中的定位器是否优先使用了录制的定位器模式
+   - 特别检查 get_by_role 的使用顺序、nth() 索引是否与录制一致
 
-7. **数据值约定**：
+2. **Python 语法检查**：使用 Python 语法检查生成的文件：`python -m py_compile file.py`
 
-| 场景 | 写法 |
-|------|------|
-| 需要唯一性的文本 | `f"前缀-{fake_data.random_4bit_str()}"` |
-| 下拉框选项 | 整数索引，从0开始 |
-| 非必填字段不填 | `None` |
-| 文件上传路径 | `os.path.join(TEST_FILES_DIRECTORY_PATH, "文件名")` |
-| 日期 | `fake_data.get_recent_date(N)` |
-| 反向测试目标字段 | `None`，非目标字段填正常值 |
+3. **检查导入语句是否正确**
 
-**渐进式生成策略**：按用例模块分组，每组单独生成数据。
+4. **检查命名是否符合规范**
 
-### 第六步：生成测试用例
-
-文件：`output/{当前日期}/tests/{端目录}/test_{module_name}.py`
-
-根据模板中的测试用例模板生成，根据场景选择模板：
-
-#### 3.3.1 使用 ValidationMixin 的测试模板（推荐，适用于有字段校验的场景）
-
-1. **导入**：
-   - `import allure, pytest, time`
-   - `from common.asserts import AssertUtils`
-   - `from common.validation_mixin import ValidationMixin`
-   - `from pages.{端目录}.{module_name} import {PageClassName}`
-   - `from datas.{端目录}.{module_name}_data import {ENTITY}_ADD_TEST_DATA`
-2. **模块标记**：`pytestmark = pytest.mark.{module_mark}`
-3. **测试类继承 ValidationMixin**：`class Test{PageClassName}(ValidationMixin)`
-4. **类属性**：`{entity_lower}_page: {PageClassName}`
-5. **类前置fixture**：
-   ```python
-   @pytest.fixture(scope="class", autouse=True)
-   def setup_class(self, {page_fixture}):
-       self.__class__.{entity_lower}_page = {PageClassName}({page_fixture})
-       yield
-   ```
-6. **必须实现三个验证方法**：
-   - `_validate_blur(self, selector, file_path, case_title)` —— 调用 `form_validator.blur_trigger_field_validation()` + `get_field_error_text()`
-   - `_validate_submit(self, selector, file_path, case_title)` —— 调用 `submit_form()` + `form_validator.get_field_error_after_submit()`
-   - `_validate_upload(self, selector, file_path, case_title)` —— 调用 `upload_attachment()` + `form_validator.get_upload_error_text()`
-7. **正向测试处理方法** `_handle_normal_test(self, test_case)`：
-   - 提交表单 → `is_submit_success(use_tip=True, success_text="新增成功")` → 成功则 `wait_win_closed()` + `is_column_exist()` → `AssertUtils.assert_submit_success()`
-8. **参数化测试方法**：
-   ```python
-   @allure.story("{实体中文名}新增功能验证")
-   @pytest.mark.parametrize("test_case", {ENTITY}_ADD_TEST_DATA, ids=lambda x: x["title"])
-   def test_{entity}_add(self, test_case):
-   ```
-   - **关键**：统一使用 `goto_module()` 进入页面 → 填写信息 → 填写附件 → 判断：有validation_info则调用 `_validate_field(test_case)`，否则调用 `_handle_normal_test(test_case)`
-
-**菜单导航处理逻辑**：
-```python
-def test_{entity}_add(self, test_case):
-    """{实体中文名}新增测试"""
-    test_data = test_case["data"]
-    route_path = test_case.get("route_path")  # 仅用于日志记录
-    validation_info = test_case.get("validation_info")
-
-    with allure.step("进入{模块中文名}页面"):
-        # 统一使用菜单导航
-        self.{entity_lower}_page.goto_module()
-        self.{entity_lower}_page.page.reload()
-    
-    # ... 后续步骤
-```
-
-#### 3.3.2 不使用 ValidationMixin 的简单测试模板（适用于简单CRUD场景）
-
-1. **测试类**：`class Test{PageClassName}ParamScenarios`
-2. **类前置fixture**：进入模块 + 类后置清理测试数据（搜索前缀 + 循环删除）
-3. **新增参数化**：`test_add_{entity}_param` —— 生成唯一名称 → 新增 → expect_success为True则搜索验证 + 清理，为False则验证弹窗/搜索不到
-4. **搜索参数化**：`test_search_{entity}_param` —— 直接搜索 + `AssertUtils.assert_search_result()`
-5. **编辑参数化**：`test_edit_{entity}_param` —— 先新增预置数据 → 编辑 → 弹窗清理(ESC循环) + 数据清理
-6. **弹窗清理**：ESC键循环关闭 + `wait_for(state="hidden", timeout=3000)`
-
-**渐进式生成策略**：按功能模块分批生成测试方法，每批不超过20个。
-
-## 用例类型映射
-
-| 用例类型 | 测试数据type | 断言方式 |
-|----------|-------------|----------|
-| UI验证类 | smoke | 验证元素存在/文本正确 |
-| 正向操作类 | positive | expect_success=True |
-| 反向操作类 | negative | expect_success=False + validation_info |
-
-## 菜单路径与端类型映射
-
-| 路径关键词 | 端目录 | 端中文名 | fixture | 测试目录 |
-|-----------|--------|---------|---------|---------|
-| 民生服务管理后台 | admin | 政策管理平台 | admin_page | tests/admin/ |
-| 企业管理 | company | 欠薪监管平台 | enterprise_page | tests/company/ |
-| 市民服务 | citizen | 系统管理 | citizen_page | tests/citizen/ |
-
-## Fixture 选用规则
-
-| 测试端 | fixture名 | scope | 自动行为 |
-|--------|-----------|-------|---------|
-| 平台管理端（admin） | `admin_page` | class | 自动登录平台管理员 |
-| 企业端 | `enterprise_page` | class | 自动登录企业账号 |
-| 市民端 | `citizen_page` | class | 自动登录市民账号 |
-| 需完全隔离的单用例 | `page` | function | 每个用例独立上下文，需手动登录 |
-
-## 断言工具选用规则
-
-| 场景 | 方法 | 关键参数 |
-|------|------|---------|
-| 新增/编辑/删除操作结果 | `AssertUtils.assert_operation_result(actual_result, test_case, msg)` | `test_case`需含`expect_success` |
-| 搜索/查询结果数量 | `AssertUtils.assert_search_result(actual_count, test_case, msg)` | `test_case`需含`expect_count` |
-| 表单提交成功 | `AssertUtils.assert_submit_success(is_success, case_title, extra_msg)` | `is_success`为bool |
-| 字段验证错误提示 | `AssertUtils.assert_validation_error(field_name, actual_error_text, expected, case_title)` | `expected`支持字符串或列表 |
-| 页面存在验证错误 | `AssertUtils.assert_has_validation_error(has_error, case_title, error_count)` | 反向测试使用 |
-
-## ValidationMixin 使用规则
-
-当测试涉及字段校验（为空、格式错误等）时，测试类必须继承 `ValidationMixin`：
-
-```python
-from common.validation_mixin import ValidationMixin
-
-class Test{PageClassName}(ValidationMixin):
-```
-
-子类必须实现三个验证方法：`_validate_blur`、`_validate_submit`、`_validate_upload`。
-
-父类自动提供：`_validate_field(test_case)`（根据trigger自动分发）、`_check_required_params()`、`_dispatch_validation()`。
-
-## 模板占位符说明
-
-| 占位符 | 含义 | 示例 |
-|--------|------|------|
-| `{端目录}` | 端子目录名 | `admin` / `company` / `citizen` |
-| `{端中文名}` | 端中文名称 | `政策管理平台` / `欠薪监管平台` / `系统管理` |
-| `{module_name}` | 模块英文标识（下划线风格） | `labor_supervision_final` |
-| `{PageClassName}` | 页面对象类名（大驼峰） | `CaseRegistrationPage` |
-| `{module_mark}` | pytest标记名（小写+下划线） | `labor_supervision` |
-| `{模块中文名}` | 模块中文名称 | `案件登记管理` |
-| `{实体中文名}` | 操作实体中文名 | `案件` |
-| `{ENTITY}` | 实体英文大写（数据常量前缀） | `CASE` |
-| `{entity}` | 实体英文（方法名用） | `case` |
-| `{entity_lower}` | 页面对象实例名 | `case_page` |
-| `{page_fixture}` | 对应的页面fixture | `admin_page` |
-| `{一级菜单名}` | 一级菜单文本 | `欠薪监管平台` |
-| `{二级菜单名}` | 二级菜单文本 | `劳动保障监察案件` |
-| `{三级菜单名}` | 三级菜单文本（可选） | `案件登记管理` |
-| `{主键字段}` | 测试数据中的主键字段名 | `case_title` |
-| `{param_list}` | add方法的参数列表 | `case_title, area_option, case_type_option` |
-| `{param_docs}` | 参数文档 | `case_title: 案件标题, area_option: 所属区域选项` |
-| `{route_path}` | 跳转路径（URL路径） | `/business/publicFacilities/chargingPile` |
-
-## 编码规范
-
-1. 测试数据全部用 Python 字典列表，禁止 YAML/JSON
-2. 每条测试数据必须包含 `type` 字段（positive/negative/smoke），否则 conftest 钩子会跳过
-3. 页面对象必须继承 BasePage，通过 `self.page` 访问 Playwright Page
-4. 唯一数据用 `fake_data.random_4bit_str()` 生成随机后缀
-5. 反向测试必须添加 `validation_info`，目标字段用 `None`，非目标字段填正常值
-6. `validation_info` 中的 `selector` 必须引用页面对象类常量，不要硬编码字符串
-7. 页面对象私有方法内部判断 `if value is not None` 再执行操作，保证 None 值不触发填充
-8. 表单区域拆分为组合方法：如 `fill_case_base_info()`、`fill_reported_unit()`
-9. 菜单导航：统一使用 `self.navigate_menu(level1=, level2=, level3=)`
-10. 新增弹窗：统一使用 `self.open_add_dialog("弹窗标题")`
-11. 搜索操作前先点重置，避免上一次搜索条件残留
-12. 操作列表前先滚动到顶部：`self.page.evaluate("window.scrollTo(0, 0)")`
-13. 弹窗清理：用 ESC 键循环关闭弹窗，再 wait_for hidden
-14. 模块级标记：文件顶部 `pytestmark = pytest.mark.{module_mark}`
-15. 参数化ID：使用 `ids=lambda x: x["title"]`，以中文标题作为参数化ID
-16. 优先使用 `wait_for_load_state`/`wait_for_selector` 等待机制，避免硬编码 `time.sleep()`
-17. 上传文件路径：使用 `os.path.join(TEST_FILES_DIRECTORY_PATH, "文件名")`，不硬编码
-18. 测试类命名：大驼峰，如 `TestLaborCaseRegistration`
-19. 测试方法命名：snake_case，如 `test_case_add`
-20. 页面对象文件头：使用 `"""{模块中文名}页面元素和操作"""` 格式的模块文档字符串
-
-## 渐进式读取策略
-
-为防止上下文过长导致生成效果不理想：
-
-1. **用例分段读取**：将测试用例按功能模块分段处理
-2. **方法独立实现**：页面对象中的每个方法独立实现
-3. **数据分组生成**：测试数据按功能模块分组
-4. **测试方法分批**：每批测试方法不超过20个
-
-## 注意事项
-
-- 用例ID与测试方法名对应：如 TC-CASE-001 → test_tc_case_001
-- 如果用例过于复杂或缺少关键信息，先列出疑问向用户确认
-- 生成后统计产出文件数量和用例数量
-- 页面对象的方法名使用 snake_case 风格
-- fixture 选用根据端类型确定
-- 涉及字段校验的测试类必须继承 ValidationMixin 并实现三个验证方法
-- 简单CRUD场景使用不继承 ValidationMixin 的简单测试模板
-- **跳转路径**：必须从测试用例中提取 `route_path` 或 `页面URL` 字段，仅记录到测试数据用于日志追踪，测试用例执行时统一使用 `goto_module()` 菜单导航
-- **e2e_runner 兼容性**：生成的测试脚本放在 `output/{日期}/tests/` 目录，conftest.py 由 e2e_runner 自动复制，测试脚本只需正确设置导入路径
-
-## 持久化
-
-- 所有生成的文件输出到 `./output/{当前日期}/` 目录（与测试用例.md同级）
-- 目录结构：
-  ```
-  output/{当前日期}/
-  ├── 测试用例.md
-  ├── pages/
-  │   └── {端目录}/
-  │       └── {module_name}.py
-  ├── datas/
-  │   └── {端目录}/
-  │       └── {module_name}_data.py
-  └── tests/
-      └── {端目录}/
-          └── test_{module_name}.py
-  ```
-- **重要**：`output/{当前日期}/tests/` 目录下的测试脚本由 e2e_runner 的 pytest 运行器执行，conftest.py 由 e2e_runner 自动复制到该目录，无需手动管理
+5. **向用户报告生成的文件清单**，并明确说明：
+   - 是否使用了 files/templates/record_operating_steps.py 中的定位器
+   - 哪些定位器是从录制代码中提取的

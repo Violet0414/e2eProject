@@ -15,13 +15,13 @@ triggers:
 
 - 功能点列表（结构化表格，通常由"需求拆分"技能产出）
 - 可选：补充的业务规则或约束说明
-- **必读参考文件**：`./referenceDocument/testPointsRequirement.md`，提取测试点时必须参照此文件中的检查要求
+- **必读参考文件**：`./files/files/templates/test_points_requirement.md`，提取测试点时必须参照此文件中的检查要求
 
 ## 处理规则
 
-1. **读取参考文件**：先读取 `./referenceDocument/testPointsRequirement.md`，理解其中定义的各类检查要求（菜单、列表查询、列表数据、列表翻页、列表操作、新增表单、编辑表单、详情表单、接口监测等）
+1. **读取参考文件**：先读取 `./files/files/templates/test_points_requirement.md`，理解其中定义的各类检查要求（菜单、列表查询、列表数据、列表翻页、列表操作、新增表单、编辑表单、详情表单、接口监测等）
 2. **逐个功能点分析**，针对每个功能点提取所有需要验证的场景
-3. **参照参考文件匹配检查项**：根据功能点的类型（如菜单、列表、表单、详情等），从 `referenceDocument/testPointsRequirement.md` 中找到对应的检查类别，将其中适用的检查要求转化为测试点
+3. **参照参考文件匹配检查项**：根据功能点的类型（如菜单、列表、表单、详情等），从 `files/templates/test_points_requirement.md` 中找到对应的检查类别，将其中适用的检查要求转化为测试点
 4. **粒度要求**：一个测试点 = 一个验证场景 = 一句话描述
    - 正确示例："用户使用正确账号密码登录成功"
    - 错误示例："测试登录功能"（太粗）

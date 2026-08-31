@@ -14,37 +14,37 @@ triggers:
 
 ## 文件路径规范
 
-**所有输入输出文件统一放在 `./exploreOutput/{日期时间文件夹}/` 下，严禁在skills目录下创建任何文件或目录。**
+**所有输入输出文件统一放在 `./explore_output/{日期时间文件夹}/` 下，严禁在skills目录下创建任何文件或目录。**
 
-- 探索记录（输入）：`./exploreOutput/{日期时间文件夹}/explore_record.md`
-- 用例模板（参考）：`./referenceDocument/用例模板.xlsx`
-- 测试点需求（参考）：`./referenceDocument/testPointsRequirement.md`
+- 探索记录（输入）：`./explore_output/{日期时间文件夹}/explore_record.md`
+- 用例模板（参考）：`./files/templates/用例模板.xlsx`
+- 测试点需求（参考）：`./files/templates/test_points_requirement.md`
 - 测试用例（输出）：
-  - Excel格式：`./exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.xlsx`
-  - Markdown格式：`./exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.md`
+  - Excel格式：`./explore_output/{日期时间文件夹}/{时间戳}_测试用例.xlsx`
+  - Markdown格式：`./explore_output/{日期时间文件夹}/{时间戳}_测试用例.md`
 
 ## 输入
 
 在开始处理前，需要用户选择要读取的探索记录文件夹：
-1. 列出 `./exploreOutput/` 下所有日期时间格式的文件夹
+1. 列出 `./explore_output/` 下所有日期时间格式的文件夹
 2. 让用户选择要读取的文件夹
-3. 确认输入路径：`./exploreOutput/{用户选择的文件夹}/explore_record.md`
+3. 确认输入路径：`./explore_output/{用户选择的文件夹}/explore_record.md`
 
-- **用例模板**：`./referenceDocument/用例模板.xlsx` - 输出Excel必须符合此模板格式
-- **测试点需求**：`./referenceDocument/testPointsRequirement.md` - 用例必须覆盖此文档中的测试点
+- **用例模板**：`./files/templates/用例模板.xlsx` - 输出Excel必须符合此模板格式
+- **测试点需求**：`./files/templates/test_points_requirement.md` - 用例必须覆盖此文档中的测试点
 
 ## 处理流程
 
 ### 1. 读取输入
 
-- 列出 `./exploreOutput/` 下所有日期时间格式的文件夹，供用户选择
+- 列出 `./explore_output/` 下所有日期时间格式的文件夹，供用户选择
 - 解析选中的 `explore_record.md` 中的菜单结构、页面列表、表单字段、操作记录、接口监测、异常记录
 - 读取 `用例模板.xlsx` 确认Excel的列结构
-- 读取 `testPointsRequirement.md` 确认需要覆盖的测试点
+- 读取 `test_points_requirement.md` 确认需要覆盖的测试点
 
 ### 2. 生成测试用例
 
-根据探索记录内容，结合testPointsRequirement.md的八大类测试点，逐页面生成测试用例。
+根据探索记录内容，结合test_points_requirement.md的八大类测试点，逐页面生成测试用例。
 
 #### 用例编号规则
 格式：`TC-{模块缩写}-{3位序号}`
@@ -73,14 +73,14 @@ triggers:
 
 #### 用例生成要求
 
-针对testPointsRequirement.md的每一类测试点，按以下规则生成用例：
+针对test_points_requirement.md的每一类测试点，按以下规则生成用例：
 
 **一、菜单** - 每个菜单项生成1条用例，验证名称、图标、权限
 **二、列表查询** - 每个查询条件生成1条单条件查询用例 + 1条组合查询用例 + 重置/展开收起/翻页后查询各1条
 **三、列表数据** - 每个表头字段生成1条字段值验证用例 + 查询后数据/删除后数据各1条
 **四、列表翻页** - 生成1条综合翻页用例（覆盖页码点击/输入/上下页/首末页/条数切换）
 **五、列表操作** - 每个操作按钮生成1条用例，删除/批量删除各生成独立用例
-**六、新增表单** - 每个字段按其类型生成对应验证用例（参照testPointsRequirement.md中六.1~22的细分规则），必填/非必填各1条，按钮操作各1条
+**六、新增表单** - 每个字段按其类型生成对应验证用例（参照test_points_requirement.md中六.1~22的细分规则），必填/非必填各1条，按钮操作各1条
 **七、编辑表单** - 回填验证1条 + 清空非必填1条 + 关闭/保存/取消各1条 + 附件回显1条
 **八、详情表单** - 字段值验证1条 + 图片预览/附件下载各1条 + TAB切换1条 + 空值/长值显示各1条
 
@@ -90,7 +90,7 @@ triggers:
 - Excel格式严格对齐 `用例模板.xlsx` 的列结构（用例编号、所属产品、所属模块、用例名称、前置条件、步骤、预期）
 - Markdown格式包含相同内容，用于test-script-generate技能的输入
 - 文件名格式：`{YYYYMMDD_HHMMSS}_测试用例.xlsx` 和 `{YYYYMMDD_HHMMSS}_测试用例.md`
-- 保存到输入文件所在的同一文件夹：`./exploreOutput/{用户选择的文件夹}/`
+- 保存到输入文件所在的同一文件夹：`./explore_output/{用户选择的文件夹}/`
 
 #### Markdown文件格式要求
 
@@ -113,8 +113,8 @@ Markdown文件应包含测试用例表格，格式示例：
 
 ## 输出
 
-- 测试用例Excel：`./exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.xlsx`
-- 测试用例Markdown：`./exploreOutput/{日期时间文件夹}/{时间戳}_测试用例.md`（与Excel内容相同）
+- 测试用例Excel：`./explore_output/{日期时间文件夹}/{时间戳}_测试用例.xlsx`
+- 测试用例Markdown：`./explore_output/{日期时间文件夹}/{时间戳}_测试用例.md`（与Excel内容相同）
 - 输出用例统计摘要：用例总数、各模块用例数、是否覆盖全部测试点
 
 ## 注意事项

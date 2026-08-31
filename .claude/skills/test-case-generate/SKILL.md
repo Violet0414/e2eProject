@@ -15,7 +15,7 @@ triggers:
 
 - 测试点清单（通常由"测试点提取"技能产出，经"测试点评审"通过）
 - 可选：业务规则补充说明
-- **必读参考文件**：`./referenceDocument/testPointsRequirement.md`，生成测试数据时必须参照此文件中的字段规则（金额小数位限制、身份证格式、手机号长度等）
+- **必读参考文件**：`./files/templates/test_points_requirement.md`，生成测试数据时必须参照此文件中的字段规则（金额小数位限制、身份证格式、手机号长度等）
 
 ## 用例结构
 
@@ -24,7 +24,7 @@ triggers:
 | 字段 | 说明 |
 |------|------|
 | 用例ID | 格式：TC-{模块缩写}-{3位序号}，如 TC-LOGIN-001 |
-| route_path | 页面URL路径，如 /business/publicFacilities/chargingPile，用于测试脚本直接跳转 |
+| route_path | 页面URL路径，如 /business/#/adminbanner/index，用于测试脚本直接跳转 |
 | 标题 | 简洁描述用例目的，不超过30字 |
 | 优先级 | 继承自关联测试点的优先级（P0/P1/P2） |
 | 关联测试点 | 对应的测试点编号 |
@@ -41,17 +41,17 @@ triggers:
    - 不写"有效手机号"，写"13800138000"
    - 不写"超长文本"，写"256个汉字的字符串：测试测试…"
    - 边界值明确给出具体数值
-   - **参照 referenceDocument/testPointsRequirement.md**：金额字段按小数位限制和整数位长度生成数据，身份证按格式校验规则生成，手机号按长度和格式规则生成，附件/图片按个数、类型、大小限制生成
+   - **参照 files/templates/test_points_requirement.md**：金额字段按小数位限制和整数位长度生成数据，身份证按格式校验规则生成，手机号按长度和格式规则生成，附件/图片按个数、类型、大小限制生成
 4. **预期结果可判定**：预期结果必须是可观察、可判定的，避免"正常显示"这类模糊表述
 5. **数据驱动场景**：如果多个用例仅数据不同（如等价类），合并为一条用例，在数据字段用表格列出多组数据
 
-## 输出格式（参照 referenceDocument/用例模板.xlsx）
+## 输出格式（参照 files/templates/用例模板.xlsx）
 
 ```markdown
 ## 测试用例
 
 **关联需求**：{需求名称}
-**route_path**：{页面URL路径，如 /business/publicFacilities/chargingPile}
+**route_path**：{页面URL路径，如 /business/#/adminbanner/index}
 **生成日期**：{当前日期}
 
 ---
