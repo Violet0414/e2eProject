@@ -352,6 +352,15 @@ triggers:
 | ---- | ---- | ---- |
 |表头单元格|`.el-table__header th:has-text("标题")`|定位列表表头字段|
 
+##### 16. 富文本编辑器（wangEditor / Tinymce 等 contenteditable）
+|控件用途|标准CSS选择器|说明|
+| ---- | ---- | ---- |
+|依赖 name/占位符定位|`textarea[placeholder="请输入内容"]`|不含富文本（普通 textarea）时可用|
+|富文本可编辑元素|`[data-testid="xxx-content"] [contenteditable="true"]`|**data-testid 常标在【外层容器】**(如 `el-form-item` div)而非可编辑元素，真实可编辑内容在内部 `[contenteditable=true]`|
+|富文本输入方式|`locator.click()` + `page.keyboard.type("文本")`|**不可用 `.fill()`**（报 "Element is not an input/textarea/contenteditable"）|
+
+> **识别要点**：字段为 内容/正文/富文本/长文本 时，用 snapshot 确认是否有工具栏；若有 → 富文本，`data-testid`/约束选择器优先落到外层容器上，可编辑元素取内部 `[contenteditable=true]`，并如实写入探索记录的"字段类型"列（如 `富文本-RichText`），供 generate 生成 `rich_text()` 定位。
+
 #### 4.3 禁止使用的选择器类型
 1. 无父级约束纯类选择器：`.el-input`、`.el-button`，会匹配页面内全部同类元素
 2. 全局无约束文本按钮：`button:has-text("确定")`，多弹窗场景会定位冲突
