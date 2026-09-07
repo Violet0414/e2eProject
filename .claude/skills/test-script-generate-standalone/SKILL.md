@@ -25,7 +25,7 @@ triggers:
 | 依赖 | ValidationMixin/BasePage/common 等 | 仅 playwright |
 | 登录 | 复用 e2e_runner conftest fixture | 脚本内置 `login()` |
 | 结果 | allure JSON | 脚本打印 `TEST_RESULT_JSON:` 协议行 + JSONL |
-| 定位器 | record_operating_steps.py 优先 | 步骤为自然语言，定位器生成 TODO 占位，需人工补 |
+| 定位器 | record_operating_steps.py 优先 | 生成前**实时采集页面真实 data-testid**（`collect_testids.py`），反查填充，未覆盖字段再语义 fallback 兜底 |
 
 ## 输入
 
@@ -34,10 +34,14 @@ triggers:
   `用例编号 | route_path | 所属产品 | 所属模块 | 用例名称 | 优先级 | 关联测试点 | 前置条件 | 测试数据 | 步骤 | 预期结果`
   （步骤/预期结果单元格内用 `<br>` 分隔多条）
 2. **关联需求名 / 模块名**（可选）：用于命名输出目录；缺省用 `auto`
-3. **（可选）testid 命名约定**：默认不要求用户提供源码或 data-testid 清单。
-   生成器**默认对所有交互节点生成"优先 data-testid"的定位代码**，testid 按下方"testid 推断命名规则"从业务词自动推断，
-   每个定位都同时附一个**语义回退定位器**（如 placeholder/button 文本），运行时可拿到已埋 testid 的稳定定位、缺失时自动回退。
-   - 若用户能告知实际使用的 testid 命名习惯（或提供少量示例），生成器将按该风格前缀推断，命中率更高
+3. **（必填）BASE_URL 与登录态 auth_state.json**：生成前需**实时采集目标页面真实 data-testid**，
+  需要目标系统基础地址与可复用登录会话的 `auth_state.json`（storage_state）。`auth_state.json` 缺省时
+  自动扫描既有批次目录（如 `generated_scripts/{需求名}_{日期}/auth_state.json`）；仍无则走 login() 填账号密码。
+  **采集失败可降级**（见「诚实边界声明」），但会导致定位器退化为推断建议值。
+4. **（可选）testid 语义反查修正**：生成器**默认不要求用户提供源码或 data-testid 清单**——它会
+  **打开页面读取真实 DOM，采集真实 `data-testid`**（含 label/placeholder/按钮文本上下文），结合测试用例字段反查定位。
+  每个定位同时附一个**语义回退定位器**（如 placeholder/button 文本），覆盖未埋 testid / 编辑详情弹窗未采集的字段。
+  - 若用户能告知实际使用的 testid 命名习惯（或提供少量示例），可作为真实采集不可用时的推断风格前缀
 
 ## 输出目录
 
@@ -72,22 +76,46 @@ e2eProject/generated_scripts/{关联需求名}_{YYYY-MM-DD}/
    - `steps`（步骤列表，按 `<br>` 拆分）
    - `expected`（预期结果列表，按 `<br>` 拆分）
 4. 忽略空行、分隔行（全 `---`）、非表格内容
+5. 汇总所有用例的 `route_path` 去重 → 待采集页面集合 P
 
-### 第四步：确定输出目录
+### 第四步：采集真实 data-testid（缓存优先）
+打开目标页面读取真实 DOM，采集每个页面上真实的 `data-testid` 及上下文（label/placeholder/按钮文本/只读/富文本），
+形成 `testids.json` 供第六步反查生成定位器。**规则**：
+1. 确认 `BASE_URL` 与 `auth_state.json`（登录态），缺省自动扫既有批次目录
+2. 对每个 `p ∈ P`：`key = sha1(base_url + p)`
+   - 若 `generated_scripts/.testid_cache/{key}.json` 存在且 `cache_key` 匹配 → **命中**，读缓存，不重采
+   - 否则 **未命中** → 调本技能 `collect_testids.py` 实时采集写缓存：
+     ```
+     python3 collect_testids.py --base-url {BASE_URL} --route-path {p} \
+       --auth-state {auth_state.json} --headless \
+       --out generated_scripts/.testid_cache/{key}.json
+     ```
+   - 采集失败（退出码非 0）→ 记录降级标记，该页定位器走纯推断，并明确告知用户
+3. 将本批次用到的 testids.json 复制一份到 `{输出目录}/testids.json`，供 README/审计引用
+4. 报告每页 `main_count / dialog_count` 摘要；说明是否命中缓存、是否降级
+
+> 采集脚本自取本技能目录：`.claude/skills/test-script-generate-standalone/collect_testids.py`。
+> 页面范围：主页面 route +（存在时）自动点开"新增"弹窗二次采集（`scope=add_dialog`）；编辑/详情弹窗本次不采，其字段走推断+语义回退。
+> 详见下方「真实 data-testid 采集说明」小节。
+
+### 第五步：确定输出目录
 ```
 generated_scripts/{需求名}_{今天日期}
 ```
 需求名用文件头部 `**关联需求**：XXX` 提取，否则用 module/产品名，再否则 `auto`。
 
-### 第五步：为每个用例生成自包含脚本
+### 第六步：为每个用例生成自包含脚本
 使用下方**脚本模板**，将解析出的字段填入，并对步骤/预期做语义转写生成执行骨架。
+**定位器 testid 采用真实采集值**（按「用例字段 → 真实 testid 对应」规则反查第④步的 `testids.json`），未命中再降级推断。
 
-### 第六步：生成 README.md
-输出目录下写 `README.md`，说明：配置文件区位置、如何填 BASE_URL/账号、如何用 Skill 2 运行。
+### 第七步：生成 README.md
+输出目录下写 `README.md`，说明：配置文件区位置、如何填 BASE_URL/账号、如何用 Skill 2 运行、
+**testid 采集说明**（缓存位置、采集时间、真实 testid 覆盖度统计）。
 
-### 第七步：校验与汇报
+### 第八步：校验与汇报
 1. 对生成的每个 `.py` 做 `python -m py_compile` 语法检查，失败则修复
-2. 向用户汇报：生成脚本数、输出目录、每个脚本内需人工补充的 TODO 定位器数量
+2. 统计**真实 testid 覆盖度**（真实/推断 定位节点数），写入 README；覆盖度 <60% 时在汇报中提示
+3. 向用户汇报：生成脚本数、输出目录、每页真实 testid 覆盖度、是否存在采集降级
 
 ## 脚本模板（fill_template_string）
 
@@ -148,8 +176,8 @@ def login(page) -> None:
 
 def tid(page, testid: str, fallback: str = ""):
     """定位器工厂：返回值**优先匹配 data-testid**，未命中回退到 fallback 语义定位器，
-    两者皆无才报错。testid 为生成器推断建议值，实际不符时改 fallback 或 base_testids 即可，
-    无需改任何步骤代码。"""
+    两者皆无才报错。testid 优先为 testids.json 采集到的真实 data-testid；未采集到
+    （如编辑/详情弹窗字段）则为推断建议值。不符时改 fallback 或 base_testids 即可，无需改步骤代码。"""
     if testid and page.locator(f"[data-testid='{testid}']").count() > 0:
         return page.get_by_test_id(testid)
     if fallback:
@@ -206,7 +234,7 @@ class {PageName}Page:
 
     def __init__(self, page) -> None:
         self.page = page
-        # ---- 定位器集中定义（优先 data-testid，缺失回退语义定位器）----
+        # ---- 定位器集中定义（testid 取 testids.json 真实采集，缺失回退语义定位器）----
         # 例: self.save_btn  = lambda: tid(page, "{prefix}-save",  "button:has-text('保存')")
         #     self.title     = lambda: tid(page, "{prefix}-title", "input[placeholder*='公告标题']")
         #     self.add_btn   = lambda: tid(page, "{prefix}-add",   "button:has-text('新增')")
@@ -295,7 +323,19 @@ if __name__ == "__main__":
   - 勾选/选择 → `.click()`
 - "预期结果"列 → 合并为 `check(page, "…", pg.<定位>(), expect="X")` 断言（同样优先 testid）；toast/提交提示断言用稳定版 `expect_toast(page, "提示文案")`
 
-#### testid 推断命名规则（无源码时按业务词推断，前缀默认取页面/模块名）
+#### testid 来源优先级（真实采集优先，推断仅兜底）
+生成定位器 testid 时按以下优先级，命中即用、未命中降级下一级：
+1. **真实采集（首选）**：从第④步 `testids.json` 按「用例字段 → 真实 testid 对应」反查该字段/动作的真实 `data-testid`。
+2. **真实容器 testid**：容器型字段（如户籍地址 city/区县 county 的子输入）用采集到的外层容器 testid + 子 placeholder 定位。
+3. **推断命名规则（仅降级）**：真实采集未覆盖（如编辑/详情弹窗字段、无 testid）时，按下方规则推断，并在页面层该行加注释 `# testid 未采集到（可能在编辑/详情弹窗），为推断建议值`。
+
+**用例字段 → 真实 testid 对应（第⑥步生成时）**：
+1. 从步骤文本提取字段词/动作词（如"填写逝者姓名""点击保存"）；
+2. 查 `testids.json` 的 `index`：`by_label`（精确）→ `by_placeholder`（精确→包含）→ `by_button_text`；
+3. 命中 → `self.<name> = lambda: tid(page, "<真实testid>", "<语义fallback>")`；
+4. 未命中 → 降级为下方推断规则。
+
+**推断命名规则（仅为降级用，前缀默认取页面/模块名）**：
 - 前缀：取用例所属模块/页面业务名转小写 kebab。如"公告通知"→ `notice`，"用户管理"→ `user`。
 - 按钮动作 → 后缀：保存`-save`、发布`-release`、取消`-cancel`、确定`-confirm`、新增`-add`、编辑`-edit`、删除`-delete`、查询`-query`、重置`-reset`、导入`-import`、导出`-export`、上一步/下一步`-prev/-next`。
 - 输入框/字段 → 字段名 kebab：标题`-title`、内容`-content`、来源`-source`、名称`-name`、类型`-type`、时间`-time`、日期`-date`、状态`-status`。
@@ -325,14 +365,29 @@ if __name__ == "__main__":
 4. **用例层**：`run_case()` 编排页面动作 + 断言，对应测试用例的"步骤/预期结果"。
 5. **驱动层**：`main()` 启动浏览器 → 登录 → 执行用例 → 上报结果/失败截图，使脚本可 `python 文件.py` 独立运行。
 
+## 真实 data-testid 采集说明
+
+- **采集脚本**：本技能自带 `.claude/skills/test-script-generate-standalone/collect_testids.py`，仅依赖 playwright，可脱离 MCP 环境独立跑。
+- **缓存位置**：`generated_scripts/.testid_cache/{sha1(base_url+route_path)}.json`，跨批次共享。
+- **命中判定**：缓存文件存在且 `cache_key` 一致即复用，默认不自动过期（页面改版后删缓存或对采集脚本加 `--refresh` 强制重采）。
+- **schema**：顶层含 `cache_key/base_url/route_path/collected_at/add_dialog/elements/index/summary`；`elements[]` 为每个真实 testid 的上下文，`index` 为 `by_label/by_placeholder/by_button_text` 反查索引，`summary.degraded` 标记是否降级。
+- **采集范围**：主页面 route（`scope=main`）+ 存在"新增"按钮时自动点开弹窗二次采集（`scope=add_dialog`）。编辑/详情弹窗本次不采。
+
 ## ⚠️ 诚实边界声明（务必告知用户）
-- 生成脚本**不需要用户提供源码或 data-testid 清单**。生成器按业务词**推断**出 testid，并统一用 `tid()` **优先匹配 `data-testid`**，再回退语义定位器。
-- **testid 是推断建议值**，若实际页面的 data-testid 命名不一致，运行时 `tid()` 会自动回退到语义定位器（placeholder/按钮文本），步骤仍能执行；
-  若想拿到稳定的 testid 定位，改 `base_testids` 或 `tid()` 的 fallback 即可，无需改步骤代码。
+- 生成脚本**优先使用页面真实采集的 data-testid**：生成前打开目标页面 dump 真实 DOM（读取第④步 `testids.json` 缓存，含 label/placeholder/按钮文本上下文），结合用例字段反查，`tid()` **优先匹配 `data-testid`**，再回退语义定位器。
+- **降级情形（必须明确告知用户）**：当缺少 `auth_state.json`、目标页面打不开、或缓存未命中且实时采集失败时，该页定位器整体退化为**按业务词推断的 testid 建议值**（脚本仍可用，靠语义 fallback 运行，但可能不符合页面实际）。
+- **范围限制（必须告知）**：编辑/详情弹窗字段**本次不采集**，其 testid 为推断建议值并在页面层逐处加注释标注；要拿到其稳定 testid，改 `base_testids` 或 `tid()` 的 fallback 即可，无需改步骤代码。
+- **覆盖率**：每页会统计"真实 testid 覆盖度"（真实/推断 节点数）写入 README；覆盖度 <60% 会在汇报中提示（可能页面未埋 testid 或字段在编辑/详情弹窗）。
 - **富文本字段特殊**：data-testid 常标在外层容器，已用 `rich_text()` 定位内部 `[contenteditable=true]`，勿用 `.fill()`。
 - **登录态二选一**：`AUTH_STATE` 复用已登录会话（真实系统常无法重登验证码/SSO，推荐）/ 填 BASE_URL+账号走 `login()`；结果协议、失败截图、toast 断言（稳定版）均可直接运行。
 
 ## 校验清单
+- [ ] `collect_testids.py` 通过 `python -m py_compile`；`--help`/缺失 `--out` 有明确报错（退出码 2）
+- [ ] 采集正常：本批次 `generated_scripts/.testid_cache/{key}.json` 已生成或命中缓存，schema 含 `elements`+`index`，`add_dialog.opened` 符合实际
+- [ ] 生成脚本页面层定位器：字段在 `index` 可反查到 → `tid()` 第一参为**真实 testid**（非推断值）
+- [ ] **真实 testid 覆盖度统计**写入 README（如"17/20 节点为真实 testid"）；覆盖度 <60% 时在汇报中提示可能页面未埋 testid 或字段在编辑/详情弹窗
+- [ ] 降级字段（编辑/详情弹窗、采集失败）已在页面层标注 `# testid 未采集到...` 注释，且在汇报中如实告知
+- [ ] 语义 fallback 遵循 explore-site 4.1~4.2：精确 placeholder、`.el-form-item`/弹窗范围约束、禁全局无约束文本；只读字段 `input_value()` 断言；富文本 `rich_text()` + `click()/keyboard.type()`
 - [ ] 每个 `.py` 通过 `python -m py_compile`
 - [ ] 配置区占位符齐全（BASE_URL/LOGIN_URL_PATH/USERNAME/PASSWORD/SMS_CODE/**AUTH_STATE**）且带 TODO 注释
 - [ ] 脚本为 ①②③④⑤ 五层结构（配置/辅助/页面PO/用例/驱动），`main()` 驱动 `run_case()`，页面动作归页面类方法
