@@ -112,10 +112,39 @@ generated_scripts/{需求名}_{今天日期}
 输出目录下写 `README.md`，说明：配置文件区位置、如何填 BASE_URL/账号、如何用 Skill 2 运行、
 **testid 采集说明**（缓存位置、采集时间、真实 testid 覆盖度统计）。
 
-### 第八步：校验与汇报
-1. 对生成的每个 `.py` 做 `python -m py_compile` 语法检查，失败则修复
-2. 统计**真实 testid 覆盖度**（真实/推断 定位节点数），写入 README；覆盖度 <60% 时在汇报中提示
-3. 向用户汇报：生成脚本数、输出目录、每页真实 testid 覆盖度、是否存在采集降级
+### 第八步：生成后自检（selfcheck.py）
+脚本生成完毕、交付给用户前，用本技能目录下的 `selfcheck.py` 做一轮自动化检查，
+把"脚本一跑就炸"的问题在生成阶段就拦住。**共 6 项检查**：
+
+```bash
+python3 .claude/skills/test-script-generate-standalone/selfcheck.py \
+    --script-dir {输出目录} \
+    --base-url {BASE_URL} \
+    --route-path {route_path} \
+    --auth-state {auth_state.json} \
+    --testids {输出目录}/testids.json
+```
+
+| # | 检查项 | 级别 | 说明 |
+|---|--------|------|------|
+| 1 | 语法检查 | error | 逐文件 `py_compile`，发现语法错误立即修复 |
+| 2 | viewport 字典语法 | error | 检测 `viewport={{...}}` 双层大括号笔误（模板 .format() 转义残留） |
+| 3 | 模板完整性 | error | 校验五层结构、`record_result` / `tid` / `check` / `expect_toast` / `main` / `if __name__` / `TEST_RESULT_JSON` 协议行 |
+| 4 | 定位器预检 | error/warn | 用 auth_state 打开目标页面，抽样验证脚本中的定位器能否命中元素。零命中则为 error |
+| 5 | 断言方式检查 | warn | input/select/date 类字段不能用 `inner_text()` 断言（值在 `value` 属性），应改用 `input_value()`。结合 `testids.json` 的 `type` 字段判断 |
+| 6 | testid 类型报告 | info | 输出 testids.json 中各 testid 的元素类型统计，指导生成器选择正确的断言方式 |
+
+**修复原则**：
+- error 级问题**必须修复**后再交付（语法错误、定位器零命中、模板缺失）
+- warn 级问题尽量修复（断言方式用错等），若有特殊原因不改需在 README/汇报中说明
+- info 级仅作信息性报告
+
+`--no-live` 参数可跳过需要浏览器的定位器预检（第 4 项），用于离线环境。
+
+### 第九步：校验与汇报
+1. 自检通过后，统计**真实 testid 覆盖度**（真实/推断 定位节点数），写入 README；覆盖度 <60% 时在汇报中提示
+2. 向用户汇报：生成脚本数、输出目录、自检结果（错误/警告数）、每页真实 testid 覆盖度、是否存在采集降级
+3. 若自检发现问题，说明已修复的内容和修复方式
 
 ## 脚本模板（fill_template_string）
 
@@ -383,11 +412,19 @@ if __name__ == "__main__":
 
 ## 校验清单
 - [ ] `collect_testids.py` 通过 `python -m py_compile`；`--help`/缺失 `--out` 有明确报错（退出码 2）
+- [ ] `selfcheck.py` 通过 `python -m py_compile`；`--help` 输出 6 项检查说明
 - [ ] 采集正常：本批次 `generated_scripts/.testid_cache/{key}.json` 已生成或命中缓存，schema 含 `elements`+`index`，`add_dialog.opened` 符合实际
 - [ ] 生成脚本页面层定位器：字段在 `index` 可反查到 → `tid()` 第一参为**真实 testid**（非推断值）
 - [ ] **真实 testid 覆盖度统计**写入 README（如"17/20 节点为真实 testid"）；覆盖度 <60% 时在汇报中提示可能页面未埋 testid 或字段在编辑/详情弹窗
 - [ ] 降级字段（编辑/详情弹窗、采集失败）已在页面层标注 `# testid 未采集到...` 注释，且在汇报中如实告知
 - [ ] 语义 fallback 遵循 explore-site 4.1~4.2：精确 placeholder、`.el-form-item`/弹窗范围约束、禁全局无约束文本；只读字段 `input_value()` 断言；富文本 `rich_text()` + `click()/keyboard.type()`
+- [ ] **生成后自检（selfcheck.py 6 项）已全部执行**：
+  - [ ] 语法检查：全部 `.py` 通过 `py_compile`
+  - [ ] viewport 字典：无 `viewport={{...}}` 双层大括号笔误
+  - [ ] 模板完整性：五层结构 / record_result / tid / check / expect_toast / main / if __name__ / TEST_RESULT_JSON 协议行 齐全
+  - [ ] 定位器预检：关键定位器抽样命中（无零命中 error）
+  - [ ] 断言方式检查：input/select/date 类字段未误用 `inner_text()` 断言（应 `input_value()`）
+  - [ ] testid 类型报告：已输出类型统计供生成器参考
 - [ ] 每个 `.py` 通过 `python -m py_compile`
 - [ ] 配置区占位符齐全（BASE_URL/LOGIN_URL_PATH/USERNAME/PASSWORD/SMS_CODE/**AUTH_STATE**）且带 TODO 注释
 - [ ] 脚本为 ①②③④⑤ 五层结构（配置/辅助/页面PO/用例/驱动），`main()` 驱动 `run_case()`，页面动作归页面类方法
@@ -395,6 +432,7 @@ if __name__ == "__main__":
 - [ ] 登录函数支持 AUTH_STATE 复用（非空则跳过填账号登录）、失败截图兜底齐全
 - [ ] 脚本含 `tid()` 辅助，页面层所有定位节点用 `tid(page, "<testid>", "<fallback>")` 生成（优先 data-testid、缺失回退）；富文本字段（内容/正文）用 `rich_text()` + `click()/keyboard.type()` 输入
 - [ ] `check()` 兼容未调用 lambda（含 `if callable(locator)`）；toast/提交提示断言用稳定版 `expect_toast()`（短重试）
+- [ ] input/select/date 类字段的回显断言使用 `input_value()` 而非 `inner_text()`（由 selfcheck 第 5 项把关）
 - [ ] 无 `# TODO 定位器` 残留（已由语义 fallback 取代）
 - [ ] `if __name__ == "__main__": main()` 存在，保证脚本可 `python 文件.py` 独立运行（供 test-script-run-collect 批量执行）
-- [ ] README.md 已生成并说明配置（含 AUTH_STATE 两种运行方式）与后续运行方式
+- [ ] README.md 已生成并说明配置（含 AUTH_STATE 两种运行方式）、自检结果、与后续运行方式
