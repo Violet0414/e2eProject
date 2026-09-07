@@ -79,7 +79,7 @@ def main():
     # 优先从 output/{日期}/ 目录读取 pages 和 datas，其次使用 e2e_runner 目录
     output_pages = output_base / "pages"
     output_datas = output_base / "datas"
-    python_path = f"{output_pages}:{output_datas}:{E2E_RUNNER_DIR}:{E2E_RUNNER_DIR / 'pages'}:{E2E_RUNNER_DIR / 'common'}:{E2E_RUNNER_DIR / 'config'}:{E2E_RUNNER_DIR / 'datas'}"
+    python_path = f"{output_base}:{output_pages}:{output_datas}:{E2E_RUNNER_DIR}:{E2E_RUNNER_DIR / 'pages'}:{E2E_RUNNER_DIR / 'common'}:{E2E_RUNNER_DIR / 'config'}:{E2E_RUNNER_DIR / 'datas'}"
     if 'PYTHONPATH' in os.environ:
         os.environ['PYTHONPATH'] = python_path + ":" + os.environ['PYTHONPATH']
     else:

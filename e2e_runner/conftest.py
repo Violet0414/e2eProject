@@ -42,6 +42,22 @@ if output_base:
         if path.exists() and str(path) not in sys.path:
             sys.path.insert(0, str(path))
 
+    # e2e_runner/pages 与 e2e_runner/datas 是已存在的常规包（含 __init__.py），
+    # Python 不会自动把 output/{日期}/pages 合并进来。这里显式扩展包的 __path__，
+    # 让 `from pages.admin.xxx` / `from datas.admin.xxx` 能在两个目录中查找。
+    import importlib
+    for pkg_name in ["pages", "datas", "pages.admin", "datas.admin"]:
+        rel_parts = pkg_name.split(".")
+        extra_path = output_path.joinpath(*rel_parts)
+        if not extra_path.exists():
+            continue
+        try:
+            pkg = importlib.import_module(pkg_name)
+        except ImportError:
+            continue
+        if hasattr(pkg, "__path__") and str(extra_path) not in list(pkg.__path__):
+            pkg.__path__.append(str(extra_path))
+
 from playwright.sync_api import sync_playwright, Browser, Page
 
 from config.settings import settings
