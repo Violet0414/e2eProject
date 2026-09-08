@@ -73,6 +73,13 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
     [--filter TC-PERSON] [--headless] [--max-retry 1] [--keep-results] [--no-live]
 ```
 
+> **提速（默认开启）**：`run_collect.py` 默认用**共享单浏览器模式**（`--shared-browser`）——
+> 只起 1 个浏览器进程，逐用例新建独立 context（复用各自 `auth_state`）+ page 跑
+> `login`/`run_case`，省去"每用例一个 `chromium.launch()`"的开销，明显更快。
+> 脚本自身仍保持 `python 文件.py` 可独立运行，产物与 `TEST_RESULT_JSON` 协议不变。
+> 个别无法 import（缺 `login`/`run_case` 或 playwright 未装）的脚本会自动退回逐脚本子进程模式。
+> 如需完全复刻旧逐脚本行为，加 `--no-shared-browser`。
+
 `run_collect.py` 职责（无需手工 for 循环）：
 - 逐个 `python3 文件.py` 执行，捕获 `TEST_RESULT_JSON: {...}` 协议行作为权威结果
 - 崩溃/超时/无协议行 → 兜底 `failed`（"脚本异常退出，未输出结果协议行"）
@@ -115,6 +122,8 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 | `--max-retry` | 1 | 偶发失败重跑次数 |
 | `--keep-results` | 关 | 保留 results.json/jsonl |
 | `--no-live` | 关 | 跳过截图补拍 |
+| `--shared-browser` | 开 | 共享单浏览器跑全部用例（提速），脚本自己跑仍独立可运行 |
+| `--no-shared-browser` | 关 | 退回逐脚本独立浏览器+子进程（旧行为） |
 
 ## 校验清单
 - [ ] `run_collect.py` 通过 `python -m py_compile`；`--help` 参数完整

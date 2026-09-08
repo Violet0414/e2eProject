@@ -142,6 +142,7 @@ python3 .claude/skills/test-script-generate-standalone/selfcheck.py \
 | 3 | 模板完整性 | error | 校验五层结构、`record_result` / `tid` / `check` / `expect_toast` / `main` / `if __name__` / `TEST_RESULT_JSON` 协议行 |
 | 4 | 定位器预检 | error/warn | 用 auth_state 打开目标页面，抽样验证脚本中的定位器能否命中元素。零命中则为 error |
 | 5 | 断言方式检查 | warn | input/select/date 类字段不能用 `inner_text()` 断言（值在 `value` 属性），应改用 `input_value()`。结合 `testids.json` 的 `type` 字段判断 |
+|   | 常见坑检查 | error/warn | 检查三类高频坑：① 日期选择器 data-testid 挂在外层 div 上，`.fill()` 直接报 "Element is not an input"——日期字段必须用 `date_input()` 包一层取内部 input；② 下拉选择用全局 `.el-select-dropdown__item` 查找选项，页面有多组级联时匹配到 hidden 选项导致超时卡死——必须用 `.el-select-dropdown:visible` 限定可见弹层内查找；③ AUTH_STATE 使用相对路径 `./.auth/...`，从不同目录运行时 FileNotFound——必须用基于 `__file__` 的绝对路径 |
 | 6 | testid 类型报告 | info | 输出 testids.json 中各 testid 的元素类型统计，指导生成器选择正确的断言方式 |
 
 **修复原则**：
@@ -160,6 +161,7 @@ python3 .claude/skills/test-script-generate-standalone/selfcheck.py \
 
 ```python
 """用例: {case_id} {case_name}"""
+import os
 import traceback
 from playwright.sync_api import sync_playwright
 
@@ -171,7 +173,7 @@ LOGIN_URL_PATH = ""           # TODO: 登录页路由，如 /business/#/login（
 USERNAME = ""                 # TODO: 登录账号
 PASSWORD = ""                 # TODO: 登录密码
 SMS_CODE = ""                 # TODO: 短信验证码（已登录可留空）
-AUTH_STATE = ""               # 复用已登录会话的 storage_state json（cookies/localStorage/sessionStorage）。非空→跳过登录直接复用该会话；为空→走下方 login()。支持扩展字段 sessionStorage（Playwright 原生 storage_state 不包含，由 login() 手动恢复）
+AUTH_STATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".auth", "auth_state.json")  # 登录态文件路径，默认取脚本同目录下 .auth/auth_state.json（使用基于脚本位置的绝对路径，避免运行目录不同导致 FileNotFound）。为空字符串→走下方 login()。支持扩展字段 sessionStorage（Playwright 原生 storage_state 不包含，由 login() 手动恢复）
 ROUTE_PATH = "{route_path}"   # 本用例页面路由（由用例表格 route_path 列自动填入）
 HEADLESS = False              # True=无头运行，False=可视化
 
@@ -197,6 +199,16 @@ def record_result(status: str, error: str = "", screenshot: str = "") -> None:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
+def quick_load(page, url: str) -> None:
+    """导航后快速等待：优先 domcontentloaded（马上往下执行），networkidle 仅做限时兜底。
+    避免 SPA 长轮询/懒加载页面在 networkidle 上无限等待拖慢执行。"""
+    page.goto(url, wait_until="domcontentloaded")
+    try:
+        page.wait_for_load_state("networkidle", timeout=3000)
+    except Exception:
+        page.wait_for_timeout(600)
+
+
 def login(page) -> None:
     """已配置 AUTH_STATE 时复用该会话（跳过填账号登录）；否则走账号密码登录。
     真实系统常无法重登（验证码/SSO），优先用 AUTH_STATE 复用已登录会话。
@@ -214,16 +226,14 @@ def login(page) -> None:
                     sessionStorage.setItem(k, v);
                 }
             }""", _auth_data["sessionStorage"])
-        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(800)
         return
-    page.goto(BASE_URL + LOGIN_URL_PATH)
-    page.wait_for_load_state("networkidle")
+    quick_load(page, BASE_URL + LOGIN_URL_PATH)
     page.fill("input[placeholder*='账号']", USERNAME)
     page.fill("input[placeholder*='密码']", PASSWORD)
     page.fill("input[placeholder*='验证码']", SMS_CODE)
     page.click("button:has-text('登录')")
-    page.wait_for_load_state("networkidle")
-    page.wait_for_timeout(1000)
+    page.wait_for_timeout(1200)
 
 
 def tid(page, testid: str, fallback: str = ""):
@@ -237,6 +247,18 @@ def tid(page, testid: str, fallback: str = ""):
     raise AssertionError(f"未找到元素: testid={testid!r}, fallback={fallback!r}")
 
 
+def date_input(page, testid: str, fallback: str = ""):
+    """日期选择器（el-date-picker / el-date-editor 等）定位器：data-testid 常标在**外层容器 div**上，
+    真实可输入元素在其内部 `<input>`。直接对容器调用 .fill() 会报 "Element is not an input"。"""
+    if testid and page.locator(f"[data-testid='{testid}']").count() > 0:
+        el = page.locator(f"[data-testid='{testid}'] input").first
+        if el.count() > 0:
+            return el
+    if fallback:
+        return page.locator(fallback)
+    raise AssertionError(f"未找到日期选择器输入元素: testid={testid!r}, fallback={fallback!r}")
+
+
 def rich_text(page, testid: str, fallback: str = ""):
     """富文本编辑控件（wangEditor/Tinymce 等）定位器：data-testid 常标在**外层容器**（如 el-form-item）
     上，真实可编辑元素在其内部 `[contenteditable='true']`。区别于普通 input/textarea。"""
@@ -247,6 +269,19 @@ def rich_text(page, testid: str, fallback: str = ""):
     if fallback:
         return page.locator(fallback)
     raise AssertionError(f"未找到富文本可编辑元素: testid={testid!r}, fallback={fallback!r}")
+
+
+def select_dropdown(page, select_locator, option_text: str, nth: int = 0, timeout: int = 5000) -> None:
+    """点击下拉选择器并选择指定选项。**只在当前可见的下拉弹层内查找**，避免页面上多组级联选择器
+    （如户籍地址/死亡地点/家属住址的"船山区"）互相干扰导致匹配到 hidden 元素而超时卡死。
+    select_locator 支持定位器对象或字符串。"""
+    sel = page.locator(select_locator) if isinstance(select_locator, str) else select_locator
+    sel.click()
+    page.wait_for_timeout(300)
+    items = page.locator('.el-select-dropdown:visible .el-select-dropdown__item').filter(has_text=option_text)
+    items.nth(nth).wait_for(timeout=timeout)
+    items.nth(nth).click()
+    page.wait_for_timeout(300)
 
 
 def check(page, desc: str, locator, expect: str = "") -> None:
@@ -292,12 +327,13 @@ class {PageName}Page:
         #     self.add_btn   = lambda: tid(page, "{prefix}-add",   "button:has-text('新增')")
         # 富文本（内容/正文/富文本/长文本）用 rich_text()：data-testid 标在外层容器，可编辑区在内部 contenteditable。
         # 例: self.content   = lambda: rich_text(page, "{prefix}-content", "textarea[placeholder*='内容']")
+        # 日期选择器（日期/时间/出生年月/死亡时间 等）用 date_input()：data-testid 常标在外层 div，内部才是 input。
+        # 例: self.start_date = lambda: date_input(page, "{prefix}-start-date", ".el-form-item:has-text('开始日期') .el-date-editor input")
         ## placeholder:PAGE_OBJECT_ATTRS
 
     def open(self) -> None:
         """进入本用例页面。"""
-        self.page.goto(BASE_URL + ROUTE_PATH)
-        self.page.wait_for_load_state("networkidle")
+        quick_load(self.page, BASE_URL + ROUTE_PATH)
 
     # ---- 业务动作（每个命名动作一个方法，对应一条增/删/改/查/其他操作）----
     ## placeholder:PAGE_OBJECT_METHODS
@@ -326,7 +362,7 @@ def main() -> None:
     page = None
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=HEADLESS)
+            browser = p.chromium.launch(headless=HEADLESS, args=["--disable-gpu"])
             # AUTH_STATE 非空→复用已登录会话(storage_state)；为空→全新上下文走 login() 填账号
             context = browser.new_context(
                 storage_state=AUTH_STATE if AUTH_STATE else None)
@@ -398,7 +434,8 @@ if __name__ == "__main__":
 - 含 **点击 …按钮/链接** → `button:has-text('…')`（如 `button:has-text('保存')`）
 - 含 **填写/输入/录入 …** → `input[placeholder*='…']`（如 `input[placeholder*='公告标题']`）
 - 含 **填写/输入…内容/正文/富文本/长文本**（字段名为内容类）→ 用 `rich_text(page, "{prefix}-{字段}", "textarea[placeholder*='…']")` 定位 + 页面方法内 `click()` 后 `keyboard.type("…")`（见上方③④规则）
-- 含 **选择/勾选/展开 …** → 通用为 `text=…` 或按意图取 select/checkbox 定位符（无法精确时用 `page.locator("text=…")`）
+- 含 **填写/选择/设置 …日期/时间/出生年月/死亡时间**（日期选择器类字段）→ 用 `date_input(page, "{prefix}-{字段}", ".el-form-item:has-text('…') .el-date-editor input")` 定位，直接 `.fill("YYYY-MM-DD")` + `keyboard.press("Enter")` 填入
+- 含 **选择/勾选/展开 …下拉/选项/类型/民族/省市区县**（下拉选择类字段）→ 定位器用 `tid(page, "{prefix}-{字段}", '.el-form-item:has-text("…") .el-select')`，**选择动作统一调用辅助函数 `select_dropdown(page, select_locator, option_text)`**（只在可见弹层内查找，避免多组级联选项重名串扰导致超时卡死）
 - 含 **核对/检查/观察 …是否为/显示为 X** → `check(page, "…", pg.<定位>(), expect="X")`
 - 无法明确映射的业务步骤 → 在用例层生成 `# stepN {原文}` 注释行，交给执行人员按界面补充
 
@@ -431,6 +468,8 @@ if __name__ == "__main__":
 - **范围限制（必须告知）**：编辑/详情弹窗字段**本次不采集**，其 testid 为推断建议值并在页面层逐处加注释标注；要拿到其稳定 testid，改 `base_testids` 或 `tid()` 的 fallback 即可，无需改步骤代码。
 - **覆盖率**：每页会统计"真实 testid 覆盖度"（真实/推断 节点数）写入 README；覆盖度 <60% 会在汇报中提示（可能页面未埋 testid 或字段在编辑/详情弹窗）。
 - **富文本字段特殊**：data-testid 常标在外层容器，已用 `rich_text()` 定位内部 `[contenteditable=true]`，勿用 `.fill()`。
+- **日期选择器特殊**：data-testid 常标在 `el-date-editor` 外层 div 上，直接 `.fill()` 会报 "Element is not an input"，必须用 `date_input()` 取内部 `<input>`。
+- **级联下拉选项查找**：页面存在多组同名选项（如3组省/市/区县都有"船山区"）时，全局查找 `.el-select-dropdown__item` 会命中 hidden 元素导致超时卡死，必须用 `.el-select-dropdown:visible` 限定在当前可见弹层内查找。
 - **登录态二选一**：`AUTH_STATE` 复用已登录会话（真实系统常无法重登验证码/SSO，推荐）/ 填 BASE_URL+账号走 `login()`；结果协议、失败截图、toast 断言（稳定版）均可直接运行。
 
 ## 校验清单
@@ -455,6 +494,9 @@ if __name__ == "__main__":
 - [ ] 登录函数支持 AUTH_STATE 复用（非空则跳过填账号登录），支持 sessionStorage 扩展字段自动恢复，失败截图兜底齐全
 - [ ] 脚本含 `tid()` 辅助，页面层所有定位节点用 `tid(page, "<testid>", "<fallback>")` 生成（优先 data-testid、缺失回退）；富文本字段（内容/正文）用 `rich_text()` + `click()/keyboard.type()` 输入
 - [ ] `check()` 兼容未调用 lambda（含 `if callable(locator)`）；toast/提交提示断言用稳定版 `expect_toast()`（短重试）
+- [ ] 日期选择器字段使用 `date_input()` 而非直接 `tid()`（data-testid 常挂在外层 div 上，.fill() 会失败）
+- [ ] 下拉选项查找使用 `.el-select-dropdown:visible` 限定可见弹层（多组级联时避免命中 hidden 选项导致超时卡死）
+- [ ] `AUTH_STATE` 使用基于 `__file__` 的绝对路径（如 `os.path.join(os.path.dirname(os.path.abspath(__file__)), ".auth", "auth_state.json")`），避免从不同目录运行时 FileNotFound
 - [ ] input/select/date 类字段的回显断言使用 `input_value()` 而非 `inner_text()`（由 selfcheck 第 5 项把关）
 - [ ] 无 `# TODO 定位器` 残留（已由语义 fallback 取代）
 - [ ] `if __name__ == "__main__": main()` 存在，保证脚本可 `python 文件.py` 独立运行（供 test-script-run-collect 批量执行）

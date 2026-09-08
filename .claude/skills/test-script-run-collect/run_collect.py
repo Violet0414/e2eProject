@@ -12,6 +12,7 @@
 退出码：0 = 完成（可能含失败用例）；1 = 参数错误 / 目录无效。
 """
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -19,7 +20,9 @@ import shutil
 import subprocess
 import sys
 import traceback
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
+from io import StringIO
 from pathlib import Path
 
 SRC_DIR = Path(__file__).resolve().parent
@@ -40,6 +43,10 @@ def parse_args():
     p.add_argument("--max-retry", type=int, default=1, help="偶发时序失败重跑次数，默认 1")
     p.add_argument("--keep-results", action="store_true", help="保留 results.json/jsonl 等临时产物（默认清理）")
     p.add_argument("--no-live", action="store_true", help="跳过失败用例截图补拍（无需浏览器）")
+    p.add_argument("--shared-browser", default=True, action="store_true",
+                   help="共享单浏览器模式：1 个浏览器进程跑全部用例（默认开启，速度更快）")
+    p.add_argument("--no-shared-browser", dest="shared_browser", action="store_false",
+                   help="关闭共享浏览器模式，退回逐脚本独立浏览器+子进程（兼容旧行为）")
     return p.parse_args()
 
 
@@ -125,6 +132,145 @@ def collect(full_meta: dict, o) -> dict:
             "route": full_meta.get("route", ""), "base_url": full_meta.get("base_url", "")}
 
 
+# =============================================================================
+# ⑤ 共享单浏览器模式（默认）
+#    1 个浏览器进程跑全部用例：每个用例进它的模块，import 出 login/run_case，
+#    在共享浏览器内新建独立 context（复用各自 auth_state）+ page 执行。
+#    消除"逐用例 chromium.launch()"的 ~1-2s 固定开销。产物/协议契约不变。
+# =============================================================================
+def import_script(py_path: Path):
+    """从文件加载自包含测试脚本为模块（脚本文件名带横线，需净化为合法模块名）。
+    失败返回 None，调用方退回子进程模式。"""
+    try:
+        name = py_path.stem.replace("-", "_")
+        spec = importlib.util.spec_from_file_location(name, py_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:
+        return None
+
+
+def _cap_run(browser, m, cid, timeout: int) -> dict:
+    """在共享浏览器上执行单个用例，捕获 TEST_RESULT_JSON 协议行。
+    成功→record_result('passed')；异常→失败截图 + record_result('failed')。
+    需脚本模块暴露 login(page) 与 run_case(page)（模板保证）。"""
+    page = None
+    buf = StringIO()
+    try:
+        storage = getattr(m, "AUTH_STATE", "") or None
+        ctx = browser.new_context(storage_state=storage)
+        page = ctx.new_page()
+        with redirect_stdout(buf), redirect_stderr(buf):
+            m.login(page)
+            m.run_case(page)
+            m.record_result("passed")
+        mpar = PROTOCOL_RE.search(buf.getvalue())
+        entry = json.loads(mpar.group(1)) if mpar else {"status": "failed",
+                                                        "error": "共享模式运行成功但未捕获结果协议行"}
+
+        ctx.close()
+        return entry
+    except Exception:
+        screenshot = ""
+        if page is not None:
+            try:
+                page.screenshot(path=f"screenshots/{cid}_failed.png", full_page=True)
+                screenshot = f"screenshots/{cid}_failed.png"
+            except Exception:
+                pass
+            try:
+                page.context.close()
+            except Exception:
+                pass
+        with redirect_stdout(buf), redirect_stderr(buf):
+            m.record_result("failed", error=traceback.format_exc(), screenshot=screenshot)
+        mpar = PROTOCOL_RE.search(buf.getvalue())
+        if mpar:
+            return json.loads(mpar.group(1))
+        return {"status": "failed", "error": traceback.format_exc(), "screenshot": screenshot}
+
+
+def run_shared(script_dir: Path, py_files: list, metas: dict, args) -> dict:
+    """共享单浏览器逐用例执行。不可导入或缺 login/run_case 的脚本退回子进程模式。"""
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception:
+        print("[run_collect] 未安装 playwright，退回逐脚本子进程模式")
+        return None
+    headless = bool(args.headless) or os.environ.get("HEADLESS", "True") == "True"
+    py_files = [f for f in py_files if f.endswith(".py") and not f.startswith("_")]
+    results = {}
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=headless, args=["--disable-gpu"])
+            for i, f in enumerate(py_files, 1):
+                print(f"\n[{i}/{len(py_files)}] 运行 {f}（共享浏览器）...", flush=True)
+                m = import_script(Path(f))
+                cid = metas[f]["id"]
+                if m is None or not callable(getattr(m, "run_case", None)) or \
+                   not callable(getattr(m, "login", None)):
+                    print("  ⚠️ 脚本异常或缺失 login/run_case，退回子进程模式", flush=True)
+                    results[f] = collect(metas[f], run_one(script_dir, f, args.timeout, args.headless))
+                    continue
+                out = _cap_run(browser, m, cid, args.timeout)
+                res = collect(metas[f], out)
+                retried = False
+                if res["status"] != "passed" and args.max_retry > 0 and out.get("retryable"):
+                    print("  ⚠️ 首次失败，重跑确认...", flush=True)
+                    out2 = _cap_run(browser, m, cid, args.timeout)
+                    retried = True
+                    if out2["status"] == "passed":
+                        res = collect(metas[f], out2)
+                        res["retried_passed"] = True
+                        print("  ✅ 重跑通过", flush=True)
+                    else:
+                        res = collect(metas[f], out2)
+                results[f] = res
+                if res["status"] == "passed":
+                    tag = "✅ 通过" if not retried else "✅ 通过(重跑)"
+                    print(f"  {tag}", flush=True)
+                else:
+                    err_lines = [l for l in (res.get("error") or "").split("\n") if l.strip()]
+                    print(f"  ❌ 失败: {(err_lines[-1] if err_lines else '')[:120]}", flush=True)
+            browser.close()
+    except Exception as e:
+        print(f"  ⚠️ 共享浏览器模式整体异常: {e}，已终止（仅完成已跑用例）")
+    return results
+
+
+def run_sequential(script_dir: Path, py_files: list, metas: dict, args) -> dict:
+    """逐脚本子进程模式（旧行为），每个脚本独立浏览器，作为共享模式回退。"""
+    results = {}
+    for i, f in enumerate(py_files, 1):
+        print(f"\n[{i}/{len(py_files)}] 运行 {f} ...", flush=True)
+        meta = metas[f]
+        out = run_one(script_dir, f, args.timeout, args.headless)
+        res = collect(meta, out)
+        retried = False
+        if res["status"] != "passed" and args.max_retry > 0 and out.get("retryable"):
+            print("  ⚠️ 首次失败，重跑确认...", flush=True)
+            out2 = run_one(script_dir, f, args.timeout, args.headless)
+            retried = True
+            if out2["status"] == "passed":
+                out = out2
+                res = collect(meta, out)
+                res["retried_passed"] = True
+                print("  ✅ 重跑通过", flush=True)
+            else:
+                res = collect(meta, out2)
+        results[f] = res
+        status = res["status"]
+        if status == "passed":
+            tag = "✅ 通过" if not retried else "✅ 通过(重跑)"
+            print(f"  {tag}", flush=True)
+        else:
+            err_lines = [l for l in (res.get("error") or "").split("\n") if l.strip()]
+            err_short = (err_lines[-1] if err_lines else "")[:120]
+            print(f"  ❌ 失败: {err_short}", flush=True)
+    return results
+
+
 def main() -> int:
     args = parse_args()
     script_dir = resolve_script_dir(args.script_dir)
@@ -141,37 +287,15 @@ def main() -> int:
     print("=" * 60)
 
     metas = {f: extract_script_meta(Path(f)) for f in py_files}
-    results = {}
 
-    for i, f in enumerate(py_files, 1):
-        print(f"\n[{i}/{len(py_files)}] 运行 {f} ...", flush=True)
-        meta = metas[f]
-        out = run_one(script_dir, f, args.timeout, args.headless)
-        res = collect(meta, out)
-
-        # 偶发时序失败重跑
-        retried = False
-        if res["status"] != "passed" and args.max_retry > 0 and out.get("retryable"):
-            print(f"  ⚠️ 首次失败，重跑确认...", flush=True)
-            out2 = run_one(script_dir, f, args.timeout, args.headless)
-            retried = True
-            if out2["status"] == "passed":
-                out = out2
-                res = collect(meta, out)
-                res["retried_passed"] = True
-                print(f"  ✅ 重跑通过", flush=True)
-            else:
-                res = collect(meta, out2)
-
-        results[f] = res
-        status = res["status"]
-        if status == "passed":
-            tag = "✅ 通过" if not retried else "✅ 通过(重跑)"
-            print(f"  {tag}", flush=True)
-        else:
-            err_lines = [l for l in (res.get("error") or "").split("\n") if l.strip()]
-            err_short = (err_lines[-1] if err_lines else "")[:120]
-            print(f"  ❌ 失败: {err_short}", flush=True)
+    if args.shared_browser:
+        print("→ 使用共享单浏览器模式（--no-shared-browser 可退回逐脚本模式）")
+        results = run_shared(script_dir, py_files, metas, args)
+        if results is None:
+            results = run_sequential(script_dir, py_files, metas, args)
+    else:
+        print("→ 逐脚本子进程模式")
+        results = run_sequential(script_dir, py_files, metas, args)
 
     # 统计
     total = len(results)
