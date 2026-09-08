@@ -52,7 +52,13 @@ e2eProject/generated_scripts/{关联需求名}_{YYYY-MM-DD}/
   └── README.md            # 使用说明（如何填配置、如何运行）
 ```
 
-运行 Skill 2（`test-script-run-collect`）时阅读的也正是这个 `generated_scripts/` 目录。
+运行 Skill 2（`test-script-run-collect`）时阅读的也正是这个 `generated_scripts/` 目录，用其 `run_collect.py` 执行：
+```
+python3 .claude/skills/test-script-run-collect/run_collect.py \
+    --script-dir "generated_scripts/{需求名}_{日期}" [--filter TC-XXX] [--headless] [--max-retry 1]
+```
+脚本自身 `record_result` 会写 `results.json`，由 `run_collect.py` 在结束阶段自动清理；最终只保留
+**测试脚本（.py）+ `测试报告.md` + `screenshots/`**（失败截图）。详见 `test-script-run-collect/` 技能。
 
 ## 处理流程
 
