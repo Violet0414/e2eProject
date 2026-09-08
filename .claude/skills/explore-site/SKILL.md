@@ -216,18 +216,20 @@ triggers:
 - 接口调用信息
 
 #### 4.1 元素选择器通用优先级规则
-1. 表单标签约束+属性定位（placeholder/name/id/data-*）＞纯属性定位＞文本定位＞父级类约束选择器＞索引选择器（仅兜底使用，禁止优先使用）
+1. **data-testid 属性定位**（`[data-testid="xxx"]`）＞表单标签约束+属性定位（placeholder/name/id）＞纯属性定位＞文本定位＞父级类约束选择器＞索引选择器（仅兜底使用，禁止优先使用）
 2. ElementUI组件优先基于组件类做范围约束，避免全局模糊匹配，选择器必须保证`page.locator(selector).count() = 1`唯一匹配
 3. 弹窗、表格行内按钮必须增加父级范围约束，禁止使用无约束全局文本选择器
 4. 禁止使用页面动态随机ID、临时动态class作为定位器
-5. 针对页面初始化自带默认值、DOM 初始状态未展示placeholder，清空内容后才显示占位符的输入框： 必须先通过 Playwright 操作清空输入框内容，再调用page.locator().getAttribute('placeholder')获取真实占位符文本，禁止直接判定为无占位符； 获取到占位符后，依旧优先使用表单标签约束 + input[placeholder="xxx"]作为首选定位器；
+5. 针对页面初始化自带默认值、DOM 初始状态未展示placeholder，清空内容后才显示占位符的输入框： 必须先通过 Playwright 操作清空输入框内容，再调用page.locator().getAttribute('placeholder')获取真实占位符文本，禁止直接判定为无占位符； 获取到占位符后，若该元素无 data-testid，则优先使用表单标签约束 + input[placeholder="xxx"]作为定位器；
 「默认提示」列统一格式填写：页面初始默认值：{默认值}，清空后占位符：{占位符文本}。
+6. **【强制】每个元素必须先检查 data-testid**：探索任何交互元素（输入框、下拉、按钮、单选/多选、日期控件等）时，必须先用 `page.locator(...).get_attribute('data-testid')` 检查是否存在 `data-testid` 属性。若存在，**必须**将 `[data-testid="xxx"]` 作为首选定位器记录在"元素定位选择器"列的第一行，并在 `recorded_code.py` 中优先使用该选择器。
 
 #### 4.2 各类型控件标准CSS选择器规范（必须严格遵循）
 ##### 1. 单行文本输入框 el-input
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|带唯一占位符（首选）|`input[placeholder="请输入用户名"]`|稳定性最高|
+|**data-testid 定位（首选）**|`[data-testid="user-name-input"]`|有 data-testid 时优先使用，稳定性最高，不受文案/样式变化影响|
+|带唯一占位符（次选）|`input[placeholder="请输入用户名"]`|无 data-testid 时使用|
 |表单标签约束+占位符|` .el-dialog:has-text('新增') input[placeholder='请输入场馆名称']`|防止多表单相同占位符冲突|
 |name属性定位|`input[name="username"]`|后端绑定字段场景优先|
 |兜底索引定位|`.el-form-item:nth-child(1) .el-input__inner`|仅前几种无法唯一定位时使用|
@@ -235,13 +237,15 @@ triggers:
 ##### 2. 多行文本框 textarea
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|占位符定位|`textarea[placeholder="请输入备注信息"]`|常规首选|
+|**data-testid 定位（首选）**|`[data-testid="remark-textarea"]`|有 data-testid 时优先使用|
+|占位符定位（次选）|`textarea[placeholder="请输入备注信息"]`|无 data-testid 时常规首选|
 |表单约束定位|`".el-dialog:has-text('新增') textarea[placeholder='请输入场馆类型']"`|多表单场景必用|
 
 ##### 3. 下拉选择框 el-select
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|下拉回显输入框|`".el-dialog:has-text('新增') .el-select:has(input[placeholder='请选择区县'])"`|点击前输入回显框|
+|**data-testid 定位（首选）**|`[data-testid="district-select"]`|有 data-testid 时优先使用；点击展开后按 data-testid 或选项文本选择具体选项|
+|下拉回显输入框（次选）|`".el-dialog:has-text('新增') .el-select:has(input[placeholder='请选择区县'])"`|无 data-testid 时使用，点击前输入回显框|
 |下拉展开箭头按钮|`".el-dialog:has-text('新增') .el-select__caret`|用于打开下拉面板|
 |下拉单个选项|`".el-dialog:has-text('新增') .el-select-dropdown__item:has-text('启用')`|精准选中指定选项|
 |下拉面板容器|`".el-dialog:has-text('新增') .el-select-dropdown"`|下拉弹窗外层容器|
@@ -249,7 +253,8 @@ triggers:
 ##### 4. 级联选择器 el-cascader（省市区/多级联动）
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|级联回显输入框|`".el-dialog:has-text('新增') .el-select:has(input[placeholder='请选择区县'])"`|输入回显区域|
+|**data-testid 定位（首选）**|`[data-testid="region-cascader"]`|有 data-testid 时优先使用，点击展开后逐级选择；级联内部选项按文本或层级选择|
+|级联回显输入框（次选）|`".el-dialog:has-text('新增') .el-select:has(input[placeholder='请选择区县'])"`|无 data-testid 时使用，输入回显区域|
 |级联展开箭头|`".el-dialog:has-text('新增') .el-cascader__caret`|打开级联选择面板|
 |一级级联选项|`".el-cascader-panel .el-cascader-node:has-text('贵州省')`|第一级选择节点|
 |二级级联选项|`".el-cascader-panel .el-cascader-node:has-text('贵阳市')`|等待接口加载后选择|
@@ -258,7 +263,8 @@ triggers:
 ##### 5. 单选框 el-radio
 |控件用途|标准CSS选择器| 说明                                                                               |
 | ---- | ---- |----------------------------------------------------------------------------------|
-|单个单选按钮（推荐首选）|`.el-dialog:has-text("新增园区") .el-form-item:has-text("是否制定中长期发展规划") .el-radio:has-text("是")`| 1. 最外层限定弹窗 / 页面容器，隔离全局同名元素干扰；2. 通过el-form-item+表单标签精准锁定当前单选组，避免误命中其他表单项单选框；3. 直接定位可点击label.el-radio，符合 ElementUI 交互特性，点击稳定不失效                                                                       |
+|**data-testid 定位（首选）**|`[data-testid="gender-radio-yes"]` / `[data-testid="gender-radio-no"]`| 有 data-testid 时优先使用，每个选项一个 testid；若 testid 在单选组容器上，则用 `[data-testid="gender-radio"] .el-radio:has-text("是")` 定位具体选项|
+|单个单选按钮（次选）|`.el-dialog:has-text("新增园区") .el-form-item:has-text("是否制定中长期发展规划") .el-radio:has-text("是")`| 1. 最外层限定弹窗 / 页面容器，隔离全局同名元素干扰；2. 通过el-form-item+表单标签精准锁定当前单选组，避免误命中其他表单项单选框；3. 直接定位可点击label.el-radio，符合 ElementUI 交互特性，点击稳定不失效                                                                       |
 |单选组容器|`.el-dialog:has-text("新增园区") .el-form-item:has-text("性别") .el-radio-group`| 必须基于弹窗 + 所属表单项做上层约束，禁止全局直接定位el-radio-group；仅用于获取单选框全部选项、遍历选项、校验单选组选中状态，不用于直接点击操作 |
 
 1. **强制上层容器约束**：所有表单控件选择器必须以页面 / 弹窗容器作为最外层前缀（示例：`.el-dialog:has-text("新增园区")`），禁止全局裸写选择器，杜绝多弹窗、多表单场景下元素误命中。
@@ -275,7 +281,8 @@ triggers:
 ##### 6. 多选框 el-checkbox
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|多选组容器|`.el-form-item:has-text("爱好") .el-checkbox-group`|多选组件容器|
+|**data-testid 定位（首选）**|`[data-testid="hobby-checkbox-basketball"]`|有 data-testid 时优先使用，每个选项一个 testid；若 testid 在多选组容器上，则用 `[data-testid="hobby-checkbox-group"] .el-checkbox:has-text("篮球")` 定位具体选项|
+|多选组容器（次选）|`.el-form-item:has-text("爱好") .el-checkbox-group`|无 data-testid 时使用，多选组件容器|
 |单个多选选项|`.el-checkbox:has-text("篮球")`|精准勾选目标选项|
 |表格表头全选框|`.el-table__header .el-checkbox__input`|列表批量全选|
 |表格单行勾选框|`.el-table__row .el-checkbox__input`|单条数据勾选|
@@ -284,7 +291,8 @@ triggers:
 
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|日期原生输入框（直接输入・首选方式）|`.el-form-item:has-text("字段名称") .el-date-editor input[placeholder="输入框提示文案"]`|最高稳定性，直接执行clear/fill，规避容器不可编辑报错|
+|**data-testid 定位（首选）**|`[data-testid="birth-date-picker"] input`|有 data-testid 时优先使用，加 `input` 定位内部原生输入框，直接执行 clear/fill|
+|日期原生输入框（次选）|`.el-form-item:has-text("字段名称") .el-date-editor input[placeholder="输入框提示文案"]`|无 data-testid 时使用，直接执行clear/fill，规避容器不可编辑报错|
 |日期外层容器（仅用于点击打开弹窗）|`.el-form-item:has-text("字段名称") .el-date-editor:has(input[placeholder="输入框提示文案"])`|仅允许 click 操作打开日历弹窗，禁止直接执行输入、清空操作|
 |日历图标触发按钮|`.el-form-item:has-text("字段名称") .el-date-editor .el-input__icon`|点击日历小图标快速打开选择弹窗|
 |年份选择格子|`.el-year-table td.cell:has-text("2024")`|年份类型控件使用，模糊文本匹配，忽略 DOM 首尾空格|
@@ -302,33 +310,38 @@ triggers:
 ##### 8. 数字输入框 el-input-number
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|数字输入框|`.el-form-item:has-text("数量") .el-input-number__input[placeholder="请输入数量"]`|数值录入|
+|**data-testid 定位（首选）**|`[data-testid="count-input"]`|有 data-testid 时优先使用|
+|数字输入框（次选）|`.el-form-item:has-text("数量") .el-input-number__input[placeholder="请输入数量"]`|无 data-testid 时使用，数值录入|
 |数值加按钮|`.el-form-item:has-text("数量") .el-input-number__increase`|数值递增按钮|
 |数值减按钮|`.el-form-item:has-text("数量") .el-input-number__decrease`|数值递减按钮|
 
 ##### 9. 开关组件 el-switch
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|开关控件|`.el-form-item:has-text("是否启用") .el-switch`|启用/禁用状态切换|
+|**data-testid 定位（首选）**|`[data-testid="enable-switch"]`|有 data-testid 时优先使用|
+|开关控件（次选）|`.el-form-item:has-text("是否启用") .el-switch`|无 data-testid 时使用，启用/禁用状态切换|
 
 ##### 10. 文件/图片上传 el-upload
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|上传按钮|`.el-form-item:has-text("附件") .el-upload__button`|唤起文件选择窗口|
+|**data-testid 定位（首选）**|`[data-testid="attachment-upload"]`|有 data-testid 时优先使用，定位上传组件容器|
+|上传按钮（次选）|`.el-form-item:has-text("附件") .el-upload__button`|无 data-testid 时使用，唤起文件选择窗口|
 |已上传文件删除|`.el-upload-list__item-delete`|删除已上传附件|
 |图片预览缩略图|`.el-upload-list__item-thumbnail`|点击查看大图预览|
 
 ##### 11. 弹窗功能按钮（新增/编辑弹窗）
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|弹窗确定按钮|`.el-dialog:has-text("新增Banner管理") .el-button--primary:has-text("确 定")`|必须携带弹窗标题范围约束|
+|**data-testid 定位（首选）**|`[data-testid="dialog-confirm-btn"]`|有 data-testid 时优先使用；建议弹窗内按钮加弹窗前缀，如 `add-dialog-confirm-btn`|
+|弹窗确定按钮（次选）|`.el-dialog:has-text("新增Banner管理") .el-button--primary:has-text("确 定")`|无 data-testid 时使用，必须携带弹窗标题范围约束|
 |弹窗取消按钮|`.el-dialog:has-text("新增Banner管理") .el-button:has-text("取 消")`|关闭弹窗不保存数据|
 |弹窗右上角关闭|`.el-dialog:has-text("新增Banner管理") .el-dialog__close`|弹窗叉号关闭按钮|
 
 ##### 12. 列表页功能按钮
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|查询按钮|`.button-bar .el-button:has-text("查询")`|顶部搜索栏查询按钮|
+|**data-testid 定位（首选）**|`[data-testid="search-btn"]` / `[data-testid="add-btn"]`|有 data-testid 时优先使用，如 `search-btn`、`reset-btn`、`add-btn`|
+|查询按钮（次选）|`.button-bar .el-button:has-text("查询")`|无 data-testid 时使用，顶部搜索栏查询按钮|
 |重置按钮|`.button-bar .el-button:has-text("重置")`|清空所有查询条件|
 |新增按钮|`.button-bar .el-button--primary:has-text("新增")`|打开新增表单弹窗|
 |单行编辑按钮|`.el-table__row:has-text("测试名称") .el-button:has-text("编辑")`|绑定表格行避免误操作|
@@ -337,7 +350,8 @@ triggers:
 ##### 13. 分页控件 el-pagination
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|每页条数下拉|`.el-pagination .el-select__input[placeholder="每页条数"]`|切换单页展示数据量|
+|**data-testid 定位（首选）**|`[data-testid="pagination"] .btn-next`|有 data-testid 时优先使用，分页容器加 testid，内部控件通过子选择器定位|
+|每页条数下拉（次选）|`.el-pagination .el-select__input[placeholder="每页条数"]`|无 data-testid 时使用，切换单页展示数据量|
 |指定页码按钮|`.el-pagination .el-pager li:has-text("2")`|跳转至指定页码|
 |下一页按钮|`.el-pagination .btn-next`|向后翻页|
 |上一页按钮|`.el-pagination .btn-prev`|向前翻页|
@@ -345,18 +359,20 @@ triggers:
 ##### 14. Tab标签页（详情页多标签）
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|Tab切换标签|`.el-tabs__item:has-text("基础信息")`|切换不同详情面板|
+|**data-testid 定位（首选）**|`[data-testid="detail-tabs"] [data-testid="tab-basic"]`|有 data-testid 时优先使用，容器+标签均可加 testid|
+|Tab切换标签（次选）|`.el-tabs__item:has-text("基础信息")`|无 data-testid 时使用，切换不同详情面板|
 
 ##### 15. 表格表头
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|表头单元格|`.el-table__header th:has-text("标题")`|定位列表表头字段|
+|**data-testid 定位（首选）**|`[data-testid="data-table"] th[data-testid="col-title"]`|有 data-testid 时优先使用，表格+列均可加 testid|
+|表头单元格（次选）|`.el-table__header th:has-text("标题")`|无 data-testid 时使用，定位列表表头字段|
 
 ##### 16. 富文本编辑器（wangEditor / Tinymce 等 contenteditable）
 |控件用途|标准CSS选择器|说明|
 | ---- | ---- | ---- |
-|依赖 name/占位符定位|`textarea[placeholder="请输入内容"]`|不含富文本（普通 textarea）时可用|
-|富文本可编辑元素|`[data-testid="xxx-content"] [contenteditable="true"]`|**data-testid 常标在【外层容器】**(如 `el-form-item` div)而非可编辑元素，真实可编辑内容在内部 `[contenteditable=true]`|
+|**data-testid 定位（首选）**|`[data-testid="content-editor"] [contenteditable="true"]`|**data-testid 常标在【外层容器】**(如 `el-form-item` div)而非可编辑元素，真实可编辑内容在内部 `[contenteditable=true]`，必须拼接子选择器|
+|依赖 name/占位符定位（次选）|`textarea[placeholder="请输入内容"]`|不含富文本（普通 textarea）时可用|
 |富文本输入方式|`locator.click()` + `page.keyboard.type("文本")`|**不可用 `.fill()`**（报 "Element is not an input/textarea/contenteditable"）|
 
 > **识别要点**：字段为 内容/正文/富文本/长文本 时，用 snapshot 确认是否有工具栏；若有 → 富文本，`data-testid`/约束选择器优先落到外层容器上，可编辑元素取内部 `[contenteditable=true]`，并如实写入探索记录的"字段类型"列（如 `富文本-RichText`），供 generate 生成 `rich_text()` 定位。
@@ -382,6 +398,13 @@ triggers:
    - **参照模板**：`{项目目录}/files/templates/record_operating_steps.py` - 请严格按照此模板的格式生成录制代码文件
 
 2. **探索记录文件**：`{项目目录}/explore_output/{当前日期}_{时间}/explore_record.md`，结构如下：
+
+**【元素定位选择器列填写规范】**：
+- 有 `data-testid` 的元素，"元素定位选择器"列 **第一行必须写 `[data-testid="xxx"]`** 作为首选
+- 后续行按优先级列出降级方案（placeholder、文本定位等），用 `<br>` 换行分隔
+- 格式示例：`1. data-testid：[data-testid="deceased-name-input"]<br>2. placeholder：input[placeholder="请输入姓名"]`
+- 无 `data-testid` 的元素，按原有优先级规则填写
+- 弹窗确定按钮选择器同样遵循此规则：有 testid 优先写 testid，否则写 CSS 选择器
 
 # 页面探索记录（严格按以下格式填写）
 
@@ -470,6 +493,7 @@ triggers:
    - **每一个元素操作都必须生成对应的Playwright Python代码**
    - **【重要】只保留使用最终正确定位器的操作代码，删除所有失败尝试的代码**
    - **【重要】如果对同一元素进行了多次定位尝试，只保留最后成功那次的定位器和操作代码**
+   - **【强制 data-testid 优先】有 data-testid 的元素，录制代码必须使用 `page.locator('[data-testid="xxx"]')` 格式，不得使用 placeholder 或文本定位**
    - 代码格式：`page.locator('选择器').操作('参数')`
    - 录制文件中必须包括：点击、输入、选择、勾选等所有操作，比如新增表单中的输入框、选择框、日期控件、按钮等元素操作
    - 代码需要有注释说明操作内容
@@ -495,11 +519,12 @@ triggers:
 - 操作跳转页面时必须使用子会话（Agent工具）探索，避免主会话上下文溢出
 - 探索记录要结构化、详细，确保后续可直接用于生成测试用例
 - **必须记录 route_path**：从页面URL中提取路径部分（如 `http://xxx.com/business/#/adminbanner/index` 取 `/business/#/adminbanner/index`），写入探索记录头部，供后续 test-script-generate 技能生成带跳转路径的测试用例
-- **必须记录元素定位选择器**：对于每个输入框、下拉框、按钮等元素，必须记录其精确的CSS选择器或XPath。**选择器优先级规则**：
-  1. **有 placeholder 且唯一**：优先使用 `input[placeholder='xxx']` 格式的占位符选择器
-  2. **无 placeholder**：选用最稳定且准确无误的定位器（如 `button:has-text('xxx')`、`.el-dialog:has-text('xxx') .el-button--primary` 等）
-  3. **避免使用索引选择器**：如 `.el-form-item:nth-child(3)` 作为备选方案，仅在无法通过其他方式定位时使用
-  将选择器填入探索记录表格的"元素定位选择器"列，供测试脚本直接使用
+- **必须记录元素定位选择器**：对于每个输入框、下拉框、按钮等元素，必须记录其精确的CSS选择器或XPath。**选择器优先级规则**（从高到低）：
+  1. **有 data-testid**：优先使用 `[data-testid="xxx"]` 格式的选择器，稳定性最高，不受文案/样式变化影响
+  2. **有 placeholder 且唯一**：使用 `input[placeholder='xxx']` 格式的占位符选择器（无 data-testid 时）
+  3. **无 data-testid 也无 placeholder**：选用最稳定且准确无误的定位器（如 `button:has-text('xxx')`、`.el-dialog:has-text('xxx') .el-button--primary` 等）
+  4. **避免使用索引选择器**：如 `.el-form-item:nth-child(3)` 作为备选方案，仅在无法通过其他方式定位时使用
+  将选择器按优先级依次填入探索记录表格的"元素定位选择器"列（用 `<br>` 换行分隔），供测试脚本直接使用
 - 如遇错误或无法完成的操作，记录原因并继续探索其他部分
 - **严禁在skills目录下创建任何文件、目录或安装依赖**
 - 探索完成后清理Playwright MCP产生的临时文件

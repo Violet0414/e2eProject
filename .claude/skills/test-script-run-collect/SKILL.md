@@ -23,6 +23,10 @@ triggers:
 > 测试脚本（`*.py`）+ `测试报告.md` + `screenshots/`（失败截图，可溯源）。如需保留原始结果数据，
 > 用 `--keep-results`。
 
+> **配合闭环修复（test-script-fix-loop）**：若要交给 `test-script-fix-loop` 做失败反馈重写，
+> 请带 `--keep-results` 运行，保留 `results.json`/`results.jsonl` 作为失败反馈的输入源
+> （fix-loop 的 `build_feedbacks.py` 读取该文件提取定位/断言行）。否则结果为一次性，闭环无从读取。
+
 ## 输入
 
 1. **脚本目录**（必填/可省）：
@@ -52,6 +56,8 @@ triggers:
    - 用 Playwright（或 MCP）打开已登录页面，`context.storage_state(path="auth_state.json")` 一键导出；
      手拼 cookie/localStorage 兜底时注意：仅 `document.cookie` 能读非 httpOnly cookie，httpOnly 的必须走 storage_state 导出。
    - 标准样例：`{"cookies":[{name,value,domain,path}...],"origins":[{origin,localStorage:[...]}]}`（domain 填目标 host，不带端口）。
+   - **扩展字段 `sessionStorage`**：Playwright 原生 `storage_state` 不包含 sessionStorage。若目标系统登录态存在 sessionStorage 中
+     （如 JWT + sessionStorage 架构），需额外补充：`"sessionStorage": {"key": "value", ...}`。脚本 `login()` 与补拍截图均会自动读取并注入。
 3. 脚本配置区 `AUTH_STATE = "auth_state.json"` → 驱动层 `new_context(storage_state=...)` 复用会话，跳过登录。
 
 **B. 走脚本内 `login()`**：填 BASE_URL/账号/密码/验证码，`AUTH_STATE` 留空。

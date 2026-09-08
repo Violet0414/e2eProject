@@ -199,15 +199,44 @@ def main() -> int:
 
 
 def _shot_failed(script_dir: Path, failed_cases: list) -> None:
+    import json
     from playwright.sync_api import sync_playwright
     auth = Path("auth_state.json")
-    storage_state = str(auth) if auth.exists() else None
+    storage_state = None
+    session_storage = None
+    if auth.exists():
+        with open(auth, "r", encoding="utf-8") as f:
+            auth_data = json.load(f)
+        # Playwright 原生 storage_state 只认 cookies + origins
+        pw_state = {"cookies": auth_data.get("cookies", []),
+                    "origins": auth_data.get("origins", [])}
+        # 写临时文件给 storage_state 参数用
+        import tempfile
+        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8")
+        json.dump(pw_state, tmp)
+        tmp.close()
+        storage_state = tmp.name
+        session_storage = auth_data.get("sessionStorage")
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
-            ctx = browser.new_context(storage_state=storage_state,
-                                      viewport={"width": 1920, "height": 1080})
+            ctx = browser.new_context(storage_state=storage_state)
             page = ctx.new_page()
+            # 恢复 sessionStorage（Playwright storage_state 不包含）
+            if session_storage:
+                # 先导航到同域页面以设置 sessionStorage
+                first_base = ""
+                for r in failed_cases:
+                    if r.get("base_url"):
+                        first_base = r["base_url"]
+                        break
+                if first_base:
+                    page.goto(first_base, wait_until="domcontentloaded")
+                    page.evaluate("""data => {
+                        for (const [k, v] of Object.entries(data)) {
+                            sessionStorage.setItem(k, v);
+                        }
+                    }""", session_storage)
             for r in failed_cases:
                 cid = r["id"]
                 shot_path = f"screenshots/{cid}_failed_cli.png"
@@ -229,6 +258,13 @@ def _shot_failed(script_dir: Path, failed_cases: list) -> None:
             browser.close()
     except Exception as e:
         print(f"  ⚠️  补拍截图整体失败: {e}")
+    finally:
+        if storage_state and storage_state != str(auth):
+            import os
+            try:
+                os.unlink(storage_state)
+            except Exception:
+                pass
 
 
 def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> None:

@@ -33,7 +33,10 @@ triggers:
 3. **route_path 必须填写**：从`record_operating_steps.py`中提取 `route_path` 字段，写入页面对象
 4. **⚠️ 元素定位器优先级（强制执行）**：当存在多个定位器来源时，必须严格按以下优先级使用：
    - **🔴 最高优先级（强制优先）**：`record_operating_steps.py` 中的定位器（实际录制的操作代码）—— 如果此文件存在，必须优先使用，不得绕过
+     - 录制代码中若使用 `data-testid` 定位（`page.locator('[data-testid="xxx"]')` 或 `page.get_by_test_id("xxx")`），必须优先保留该写法
    - **🟡 次优先级**：`explore_record.md` 中的定位器（探索记录）
+     - 从"元素定位选择器"列读取时，若第一行是 `[data-testid="xxx"]` 格式，**必须优先使用**，可转写为 `page.get_by_test_id("xxx")` 或保留 `locator('[data-testid="xxx"]')` 格式
+     - 仅当无 data-testid 时，才降级使用列中的 placeholder / 文本选择器等
    - **🟢 最后**：根据用例合理推断
 5. **下拉选择方式**：根据实际情况选择合适的方式，参考`record_operating_steps.py`
 6. **表单填充不区分新增/编辑选择器**：`fill_form_data` 方法中新增和编辑复用相同定位器（实际项目中新增编辑弹窗结构一致）
@@ -80,6 +83,10 @@ page.get_by_role("textbox", name="请输入").nth(1)  # 项目名称
 page.get_by_role("textbox", name="请选择区县").click()  # 区县下拉
 page.get_by_role("listitem").filter(has_text="船山区").click()
 ```
+
+**⚠️ data-testid 定位器识别**：
+- 录制代码中若出现 `page.locator('[data-testid="xxx"]')` 或 `page.get_by_test_id("xxx")`，必须标记为最高稳定性定位器，优先内联使用
+- `explore_record.md` 的"元素定位选择器"列中若第一行以 `[data-testid="` 开头，该选择器优先于列中其他降级方案
 
 ### 第三步：解析其他输入文件
 

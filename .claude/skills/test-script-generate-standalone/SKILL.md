@@ -37,6 +37,10 @@ triggers:
 3. **（必填）BASE_URL 与登录态 auth_state.json**：生成前需**实时采集目标页面真实 data-testid**，
   需要目标系统基础地址与可复用登录会话的 `auth_state.json`（storage_state）。`auth_state.json` 缺省时
   自动扫描既有批次目录（如 `generated_scripts/{需求名}_{日期}/auth_state.json`）；仍无则走 login() 填账号密码。
+  - **扩展字段 `sessionStorage`**：Playwright 原生 `storage_state` 只保存 cookies 和 localStorage，
+    不保存 sessionStorage。若目标系统的登录态存在 sessionStorage 中（常见于 JWT + sessionStorage 架构），
+    可在 `auth_state.json` 中额外增加 `"sessionStorage": {"key": "value", ...}` 字段，
+    脚本 `login()` 函数会自动读取并注入恢复。
   **采集失败可降级**（见「诚实边界声明」），但会导致定位器退化为推断建议值。
 4. **（可选）testid 语义反查修正**：生成器**默认不要求用户提供源码或 data-testid 清单**——它会
   **打开页面读取真实 DOM，采集真实 `data-testid`**（含 label/placeholder/按钮文本上下文），结合测试用例字段反查定位。
@@ -134,7 +138,7 @@ python3 .claude/skills/test-script-generate-standalone/selfcheck.py \
 | # | 检查项 | 级别 | 说明 |
 |---|--------|------|------|
 | 1 | 语法检查 | error | 逐文件 `py_compile`，发现语法错误立即修复 |
-| 2 | viewport 字典语法 | error | 检测 `viewport={{...}}` 双层大括号笔误（模板 .format() 转义残留） |
+| 2 | 无固定 viewport | error | 不硬编码 viewport 尺寸，使用浏览器默认窗口大小，避免页面内容被截断 |
 | 3 | 模板完整性 | error | 校验五层结构、`record_result` / `tid` / `check` / `expect_toast` / `main` / `if __name__` / `TEST_RESULT_JSON` 协议行 |
 | 4 | 定位器预检 | error/warn | 用 auth_state 打开目标页面，抽样验证脚本中的定位器能否命中元素。零命中则为 error |
 | 5 | 断言方式检查 | warn | input/select/date 类字段不能用 `inner_text()` 断言（值在 `value` 属性），应改用 `input_value()`。结合 `testids.json` 的 `type` 字段判断 |
@@ -167,7 +171,7 @@ LOGIN_URL_PATH = ""           # TODO: 登录页路由，如 /business/#/login（
 USERNAME = ""                 # TODO: 登录账号
 PASSWORD = ""                 # TODO: 登录密码
 SMS_CODE = ""                 # TODO: 短信验证码（已登录可留空）
-AUTH_STATE = ""               # 复用已登录会话的 storage_state json（cookies/localStorage）。非空→跳过登录直接复用该会话；为空→走下方 login()
+AUTH_STATE = ""               # 复用已登录会话的 storage_state json（cookies/localStorage/sessionStorage）。非空→跳过登录直接复用该会话；为空→走下方 login()。支持扩展字段 sessionStorage（Playwright 原生 storage_state 不包含，由 login() 手动恢复）
 ROUTE_PATH = "{route_path}"   # 本用例页面路由（由用例表格 route_path 列自动填入）
 HEADLESS = False              # True=无头运行，False=可视化
 
@@ -195,8 +199,21 @@ def record_result(status: str, error: str = "", screenshot: str = "") -> None:
 
 def login(page) -> None:
     """已配置 AUTH_STATE 时复用该会话（跳过填账号登录）；否则走账号密码登录。
-    真实系统常无法重登（验证码/SSO），优先用 AUTH_STATE 复用已登录会话。"""
-    if AUTH_STATE:
+    真实系统常无法重登（验证码/SSO），优先用 AUTH_STATE 复用已登录会话。
+    支持扩展字段 sessionStorage：Playwright 原生 storage_state 不包含 sessionStorage，
+    若 auth_state.json 带 sessionStorage 字段则手动注入恢复。"""
+    import os as _os, json as _json
+    if AUTH_STATE and _os.path.exists(AUTH_STATE):
+        with open(AUTH_STATE, "r", encoding="utf-8") as _f:
+            _auth_data = _json.load(_f)
+        # 恢复 sessionStorage（Playwright storage_state 不包含）
+        if "sessionStorage" in _auth_data and _auth_data["sessionStorage"]:
+            page.goto(BASE_URL, wait_until="domcontentloaded")
+            page.evaluate("""data => {
+                for (const [k, v] of Object.entries(data)) {
+                    sessionStorage.setItem(k, v);
+                }
+            }""", _auth_data["sessionStorage"])
         page.wait_for_load_state("networkidle")
         return
     page.goto(BASE_URL + LOGIN_URL_PATH)
@@ -312,8 +329,7 @@ def main() -> None:
             browser = p.chromium.launch(headless=HEADLESS)
             # AUTH_STATE 非空→复用已登录会话(storage_state)；为空→全新上下文走 login() 填账号
             context = browser.new_context(
-                storage_state=AUTH_STATE if AUTH_STATE else None,
-                viewport={"width": 1920, "height": 1080})
+                storage_state=AUTH_STATE if AUTH_STATE else None)
             page = context.new_page()
             login(page)
             run_case(page)
@@ -395,6 +411,7 @@ if __name__ == "__main__":
 1. **配置区**：BASE_URL/账号/密码/验证码/route_path/AUTH_STATE，运行前在此填真实信息。
    - **两种运行方式**：填入 `AUTH_STATE`（复用已登录会话 json）则跳过登录直接跑；留空则填 BASE_URL+账号走 `login()`。
    - 真实系统常无法重登（验证码/SSO），优先用 AUTH_STATE 复用已登录会话（cookies/localStorage 导出为 `auth_state.json`）。
+   - **sessionStorage 支持**：若目标系统登录态存在 sessionStorage 中（Playwright storage_state 不包含），可在 `auth_state.json` 中加 `"sessionStorage": {...}` 扩展字段，`login()` 会自动注入恢复。
 2. **辅助层**：`record_result` / `tid` / `check`，通用工具，通常不动。
 3. **页面层（Page Object）**：封装定位器与增删改查动作，对应被测业务页面。
 4. **用例层**：`run_case()` 编排页面动作 + 断言，对应测试用例的"步骤/预期结果"。
@@ -426,7 +443,7 @@ if __name__ == "__main__":
 - [ ] 语义 fallback 遵循 explore-site 4.1~4.2：精确 placeholder、`.el-form-item`/弹窗范围约束、禁全局无约束文本；只读字段 `input_value()` 断言；富文本 `rich_text()` + `click()/keyboard.type()`
 - [ ] **生成后自检（selfcheck.py 6 项）已全部执行**：
   - [ ] 语法检查：全部 `.py` 通过 `py_compile`
-  - [ ] viewport 字典：无 `viewport={{...}}` 双层大括号笔误
+  - [ ] 无固定 viewport 限制（使用浏览器默认窗口大小，避免内容被截断）
   - [ ] 模板完整性：五层结构 / record_result / tid / check / expect_toast / main / if __name__ / TEST_RESULT_JSON 协议行 齐全
   - [ ] 定位器预检：关键定位器抽样命中（无零命中 error）
   - [ ] 断言方式检查：input/select/date 类字段未误用 `inner_text()` 断言（应 `input_value()`）
@@ -435,7 +452,7 @@ if __name__ == "__main__":
 - [ ] 配置区占位符齐全（BASE_URL/LOGIN_URL_PATH/USERNAME/PASSWORD/SMS_CODE/**AUTH_STATE**）且带 TODO 注释
 - [ ] 脚本为 ①②③④⑤ 五层结构（配置/辅助/页面PO/用例/驱动），`main()` 驱动 `run_case()`，页面动作归页面类方法
 - [ ] record_result 打印 `TEST_RESULT_JSON:` 协议行
-- [ ] 登录函数支持 AUTH_STATE 复用（非空则跳过填账号登录）、失败截图兜底齐全
+- [ ] 登录函数支持 AUTH_STATE 复用（非空则跳过填账号登录），支持 sessionStorage 扩展字段自动恢复，失败截图兜底齐全
 - [ ] 脚本含 `tid()` 辅助，页面层所有定位节点用 `tid(page, "<testid>", "<fallback>")` 生成（优先 data-testid、缺失回退）；富文本字段（内容/正文）用 `rich_text()` + `click()/keyboard.type()` 输入
 - [ ] `check()` 兼容未调用 lambda（含 `if callable(locator)`）；toast/提交提示断言用稳定版 `expect_toast()`（短重试）
 - [ ] input/select/date 类字段的回显断言使用 `input_value()` 而非 `inner_text()`（由 selfcheck 第 5 项把关）
