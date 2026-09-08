@@ -134,9 +134,9 @@ triggers:
 1. 先读取技能定义文件：./.claude/skills/test-script-generate-standalone/SKILL.md
 2. 读取输入文件：{时间戳}_测试用例.md（文件较大时按批次渐进读取，逐批解析用例）
 3. BASE_URL：{用户提供}；登录态 auth_state.json：写入/复用 `{批次目录}/.auth/auth_state.json`（见「登录态统一约定」）
-4. 严格按规则为每个用例生成自包含脚本到 ./generated_scripts/{需求名}_{日期}/
+4. 严格按规则为每个用例生成自包含脚本到 ./generated_scripts/{需求名}_{日期}/：按技能内「差异片段协议」先写 `_specs/` 差异片段（页面层片段每页面一份、每用例 spec.json+steps.py），再调 `gen_script.py --spec-dir ... --out ...` 渲染，**不要逐个手写全量脚本**
 5. 用 ./generated_scripts/.testid_cache 采集真实 testid；未覆盖字段按语义 fallback 兜底
-6. 用 selfcheck.py 做 6 项自检并修复 error 项
+6. 用 selfcheck.py 做 6 项自检并修复 error 项（改片段后可用 gen_script.py `--only` 重渲该用例）
 7. 回传：生成脚本数、自检结果（错误/警告数）、真实 testid 覆盖度、输出目录
 ```
 

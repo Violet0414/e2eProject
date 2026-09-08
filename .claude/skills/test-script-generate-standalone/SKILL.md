@@ -51,8 +51,11 @@ triggers:
 
 ```
 e2eProject/generated_scripts/{关联需求名}_{YYYY-MM-DD}/
-  ├── TC-XXX-001.py        # 每个用例一个自包含脚本
+  ├── TC-XXX-001.py        # 每个用例一个自包含脚本（由 gen_script.py 渲染产出）
   ├── TC-XXX-002.py
+  ├── _specs/              # 差异片段（LLM 产出，渲染输入，供审计与重渲染）
+  │   ├── pages/{PageName}.json + {PageName}_page.py
+  │   └── cases/{case_id}/spec.json + steps.py
   └── README.md            # 使用说明（如何填配置、如何运行）
 ```
 
@@ -114,16 +117,58 @@ generated_scripts/{需求名}_{今天日期}
 ```
 需求名用文件头部 `**关联需求**：XXX` 提取，否则用 module/产品名，再否则 `auto`。
 
-### 第六步：为每个用例生成自包含脚本
-使用下方**脚本模板**，将解析出的字段填入，并对步骤/预期做语义转写生成执行骨架。
+### 第六步：产出差异片段并渲染脚本（模板化拼装）
+为提速，**不再让 LLM 逐个重写全量 300~400 行脚本**（其中约 250 行 ①配置区/②辅助层/⑤驱动层
+是完全固定的样板），改为：LLM 只产出**差异片段**，由本地渲染器 `gen_script.py` 把片段拼装进
+固化模板（本技能目录下 `template.py.tpl`，与下方「脚本模板」逐行保真）生成完整自包含脚本。
 **定位器 testid 采用真实采集值**（按「用例字段 → 真实 testid 对应」规则反查第④步的 `testids.json`），未命中再降级推断。
+
+#### 差异片段协议
+
+片段写入输出目录下 `_specs/`（保留供审计与重渲染）：
+
+```
+_specs/
+  ├── pages/
+  │   ├── {PageName}.json        # {"page_name": "XxxPage", "page_doc": "模块/页面名"}
+  │   └── {PageName}_page.py     # 页面层片段，含两个段标记：
+  │         # ---- locators ----   → __init__ 内定位器定义（渲染时缩进至 8 空格）
+  │         # ---- methods ----    → class 内业务动作方法（渲染时缩进至 4 空格）
+  └── cases/
+      └── {case_id}/
+          ├── spec.json          # {"case_id","case_name","route_path","page_name"}
+          └── steps.py           # run_case 内步骤代码，顶格写（渲染时缩进至 4 空格）
+```
+
+规则：
+1. **片段代码一律顶格写**，缩进由渲染器统一加（页面层 locators 段 8 空格、methods 段 4 空格、steps 4 空格）
+2. **同页面 N 个用例共享一份 page 片段**，LLM 只写一次；用例间差异通过**方法参数化**
+   （如 `def create(self, title, content)`，正向用例传真实数据、反向用例传空/非法值）
+   或 steps 里直接调用定位器表达
+3. 步骤转写仍遵循下方「模板中的步骤转写规则」（tid/rich_text/date_input/select_dropdown/check/expect_toast、
+   反向用例快速失败断言等），只是落点从"完整脚本"变为"片段文件"
+4. 渲染命令（由生成会话执行）：
+
+```bash
+python3 .claude/skills/test-script-generate-standalone/gen_script.py \
+    --spec-dir "generated_scripts/{需求名}_{日期}/_specs" \
+    --out "generated_scripts/{需求名}_{日期}" \
+    [--only TC-XXX-001 TC-XXX-002]   # 可选：只渲染部分用例（重渲染/修复场景）
+```
+
+5. 渲染器自动校验：spec 必填字段、片段/段标记存在、渲染后无占位符残留、逐文件 `py_compile` 兜底；
+   退出码 0=全部成功 / 1=有失败（按提示修片段后重跑，可用 `--only` 只重渲失败用例）/ 2=参数错误
+6. 分批生成（>20 条）时，**同页面片段跨批复用**：第二批不再重写已生成的 page 片段，只补新用例的
+   `cases/{case_id}/` 并重跑渲染命令
 
 ### 第七步：生成 README.md
 输出目录下写 `README.md`，说明：配置文件区位置、如何填 BASE_URL/账号、如何用 Skill 2 运行、
-**testid 采集说明**（缓存位置、采集时间、真实 testid 覆盖度统计）。
+**testid 采集说明**（缓存位置、采集时间、真实 testid 覆盖度统计）、
+**`_specs/` 目录用途**（差异片段审计与重渲染入口：改片段后重跑 gen_script.py 即可再生成，无需手改脚本）。
 
 ### 第八步：生成后自检（selfcheck.py）
-脚本生成完毕、交付给用户前，用本技能目录下的 `selfcheck.py` 做一轮自动化检查，
+`gen_script.py` 渲染完毕（已含 py_compile 兜底）、交付给用户前，用本技能目录下的
+`selfcheck.py` 做一轮自动化检查，
 把"脚本一跑就炸"的问题在生成阶段就拦住。**共 6 项检查**：
 
 ```bash
@@ -158,6 +203,10 @@ python3 .claude/skills/test-script-generate-standalone/selfcheck.py \
 3. 若自检发现问题，说明已修复的内容和修复方式
 
 ## 脚本模板（fill_template_string）
+
+> 本模板已**逐行保真固化**为本技能目录下的 `template.py.tpl`（占位符替换为 `@@CASE_ID@@`/`@@CASE_NAME@@`/
+> `@@ROUTE_PATH@@`/`@@PAGE_NAME@@`/`@@PAGE_DOC@@`），第⑥步由 `gen_script.py` 读取并拼装差异片段。
+> 下文为权威参考版本；如需调整辅助层/驱动层，先改这里再同步 `template.py.tpl`。
 
 ```python
 """用例: {case_id} {case_name}"""
@@ -495,6 +544,9 @@ if __name__ == "__main__":
 - **登录态二选一**：`AUTH_STATE` 复用已登录会话（真实系统常无法重登验证码/SSO，推荐）/ 填 BASE_URL+账号走 `login()`；结果协议、失败截图、toast 断言（稳定版）均可直接运行。
 
 ## 校验清单
+- [ ] `gen_script.py` 通过 `python -m py_compile`；`--help` 正常；缺 `--spec-dir`/`--out` 或目录不存在报错（退出码 2）
+- [ ] `_specs/` 片段齐全：每个用例有 `spec.json`+`steps.py`，每个页面有 `{PageName}.json`+`{PageName}_page.py`（含 `# ---- locators ----` 与 `# ---- methods ----` 两个段标记），片段代码顶格书写
+- [ ] `gen_script.py` 渲染产物：全部通过 `py_compile`、无 `@@XXX@@`/`## placeholder:` 残留、五层结构与缩进正确
 - [ ] `collect_testids.py` 通过 `python -m py_compile`；`--help`/缺失 `--out` 有明确报错（退出码 2）
 - [ ] `selfcheck.py` 通过 `python -m py_compile`；`--help` 输出 6 项检查说明
 - [ ] 采集正常：本批次 `generated_scripts/.testid_cache/{key}.json` 已生成或命中缓存，schema 含 `elements`+`index`，`add_dialog.opened` 符合实际
