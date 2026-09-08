@@ -226,14 +226,14 @@ def login(page) -> None:
                     sessionStorage.setItem(k, v);
                 }
             }""", _auth_data["sessionStorage"])
-        page.wait_for_timeout(800)
+        page.wait_for_timeout(300)
         return
     quick_load(page, BASE_URL + LOGIN_URL_PATH)
     page.fill("input[placeholder*='账号']", USERNAME)
     page.fill("input[placeholder*='密码']", PASSWORD)
     page.fill("input[placeholder*='验证码']", SMS_CODE)
     page.click("button:has-text('登录')")
-    page.wait_for_timeout(1200)
+    page.wait_for_timeout(800)
 
 
 def tid(page, testid: str, fallback: str = ""):
@@ -284,21 +284,23 @@ def select_dropdown(page, select_locator, option_text: str, nth: int = 0, timeou
     page.wait_for_timeout(300)
 
 
-def check(page, desc: str, locator, expect: str = "") -> None:
-    """通用断言：元素可见，并可选校验其文本包含期望值。locator 支持 string / 定位器 / **未调用的 lambda**（如 pg.title）。"""
+def check(page, desc: str, locator, expect: str = "", timeout: int = 5000) -> None:
+    """通用断言：元素可见，并可选校验其文本包含期望值。locator 支持 string / 定位器 / **未调用的 lambda**（如 pg.title）。
+    timeout 默认 5s：正向元素应尽快出现，失败（反向）打满也只 5s 而非 10s，压低批量执行耗时。"""
     if callable(locator):            # 兼容传 lambda（如 pg.title）而非已求值定位器
         locator = locator()
     el = page.locator(locator) if isinstance(locator, str) else locator
-    el.wait_for(timeout=10000)
+    el.wait_for(timeout=timeout)
     if expect:
-        page.wait_for_timeout(500)
+        page.wait_for_timeout(200)
         assert expect in el.inner_text(), f"[{desc}] 实际文本不包含期望值: {expect}"
     print(f"  [OK] {desc}")
 
 
-def expect_toast(page, text: str, timeout: int = 4000, retries: int = 1) -> None:
+def expect_toast(page, text: str, timeout: int = 3000, retries: int = 1) -> None:
     """稳定等待 toast 短文提示（el-message 等）。toast 短暂、批量执行偶发超时，故做**短重试**。
-    调用方在触发动作（点保存/发布）后可先 page.wait_for_timeout(300) 再调用本函数。"""
+    调用方在触发动作（点保存/发布）后可先 page.wait_for_timeout(300) 再调用本函数。
+    仅用于正向用例（预期出现提示）；反向用例请用 expect_no_toast 负向断言。"""
     import time
     last = None
     for _ in range(retries + 1):
@@ -308,8 +310,20 @@ def expect_toast(page, text: str, timeout: int = 4000, retries: int = 1) -> None
             return
         except Exception as e:
             last = e
-            page.wait_for_timeout(500)
+            page.wait_for_timeout(300)
     raise last  # 重试仍失败 → 抛原始错误，走失败截图/上报
+
+
+def expect_no_toast(page, text: str, timeout: int = 1500) -> None:
+    """负向断言：确认指定 toast **不出现**（反向用例专用，短超时快速通过）。
+    反向用例提交非法输入后，期望"不弹成功提示"，用短超时确认未出现即可，勿打满正向超时。"""
+    try:
+        page.locator(f"text={text}").first.wait_for(timeout=timeout)
+        raise AssertionError(f"出现不应有的提示: {text}")
+    except AssertionError:
+        raise
+    except Exception:
+        print(f"  [OK] 未出现提示: {text}")
 
 
 # =============================================================================
@@ -409,6 +423,14 @@ if __name__ == "__main__":
   - 填写（富文本 内容/正文/长文本）→ 页面方法内用 `click()` + `page.keyboard.type("…", delay=30)`（富文本 `.fill()` 会报 "Element is not an input/textarea/contenteditable"）
   - 勾选/选择 → `.click()`
 - "预期结果"列 → 合并为 `check(page, "…", pg.<定位>(), expect="X")` 断言（同样优先 testid）；toast/提交提示断言用稳定版 `expect_toast(page, "提示文案")`
+
+#### 反向用例（预期失败）快速失败断言（降低批量执行耗时）
+
+反向用例（字段为空/格式错误/超长/非法输入等，`expect_success=False`）**必须快速失败**，禁止用 `expect_toast("新增成功"…)` 去等一个根本不会出现的成功提示——那会在每次执行时打满 `expect_toast` 超时，是失败用例运行最慢的元凶。按优先级选择断言方式：
+
+1. **字段级错误提示（首选，出现最快）**：断言 `el-form-item__error` 或指定错误文案，如 `check(page, "姓名为空提示", ".el-form-item__error:has-text('请输入逝者姓名')")`。blur 触发（失焦）或 submit 触发（提交）后错误立即出现，无需长超时。
+2. **负向断言"成功提示/新增弹窗关闭"不出现**：用 `expect_no_toast(page, "新增成功", timeout=1500)`，短超时确认未出现即通过。
+3. **禁止**：对反向用例生成 `expect_toast("新增成功")` / `expect_toast("保存成功")` 等成功提示等待，或长超时 `check(..., timeout=10000)`。
 
 #### testid 来源优先级（真实采集优先，推断仅兜底）
 生成定位器 testid 时按以下优先级，命中即用、未命中降级下一级：
