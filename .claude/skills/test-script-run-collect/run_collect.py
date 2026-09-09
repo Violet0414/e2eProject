@@ -47,6 +47,8 @@ def parse_args():
                    help="共享单浏览器模式：1 个浏览器进程跑全部用例（默认开启，速度更快）")
     p.add_argument("--no-shared-browser", dest="shared_browser", action="store_false",
                    help="关闭共享浏览器模式，退回逐脚本独立浏览器+子进程（兼容旧行为）")
+    p.add_argument("--merge-results", action="store_true",
+                   help="合并已有 results.json 历史结果再生成报告（配合 --filter 使用，避免报告只含部分用例）")
     return p.parse_args()
 
 
@@ -305,14 +307,31 @@ def main() -> int:
     print("\n" + "=" * 60)
     print(f"运行完成: 总数 {total} / 通过 {passed} / 失败 {failed} / 通过率 {rate:.1f}%")
 
-    # 失败用例补拍截图（按各自 route）
+    # 合并历史结果（--merge-results 时，把已有 results.json 中没跑的用例也合进来）
+    report_results = results
+    if args.merge_results:
+        report_results = _merge_existing_results(script_dir, results)
+
+    # 失败用例补拍截图（按各自 route）——只对当次运行的失败用例补拍
     failed_cases = [r for r in results.values() if r.get("status") != "passed"]
     if failed_cases and not args.no_live:
         print(f"\n为 {len(failed_cases)} 个失败用例补拍截图（按各自 route）...")
         _shot_failed(script_dir, failed_cases)
 
-    # 生成测试报告
-    _write_report(script_dir, results, failed_cases, args)
+    # 生成测试报告（用合并后的完整结果集生成报告）
+    report_failed = [r for r in report_results.values() if r.get("status") != "passed"]
+    _write_report(script_dir, report_results, report_failed, args)
+
+    # 合并后回写 results.json（去重后的干净 jsonl，避免无限累积）
+    if args.merge_results and args.keep_results:
+        out_path = script_dir / "results.json"
+        ordered = sorted(report_results.values(), key=lambda r: r.get("id", ""))
+        with open(out_path, "w", encoding="utf-8") as f:
+            for r in ordered:
+                # 只保留核心字段，去掉内部用的 route/base_url/retried_passed 等
+                clean = {k: r.get(k, "") for k in ("id", "name", "status", "error", "screenshot", "timestamp")}
+                f.write(json.dumps(clean, ensure_ascii=False) + "\n")
+        print(f"[merge] 已回写去重后的 results.json: {out_path}（{len(ordered)} 条）")
 
     # 产物清理
     if not args.keep_results:
@@ -389,6 +408,52 @@ def _shot_failed(script_dir: Path, failed_cases: list) -> None:
                 os.unlink(storage_state)
             except Exception:
                 pass
+
+
+def _merge_existing_results(script_dir: Path, current: dict) -> dict:
+    """读取已有 results.json(jsonl)，与当前运行结果合并（同ID用当前结果覆盖）。
+    返回合并后的完整 results dict（key=文件名, value=结果dict）。"""
+    existing_path = script_dir / "results.json"
+    if not existing_path.exists():
+        print("[merge] 无历史 results.json，直接使用当前结果")
+        return current
+
+    # 读取历史结果（支持 jsonl 逐行，也兼容单 json 数组/对象）
+    history = {}
+    try:
+        text = existing_path.read_text(encoding="utf-8")
+        lines = [l.strip() for l in text.split("\n") if l.strip()]
+        for line in lines:
+            try:
+                entry = json.loads(line)
+                cid = entry.get("id", "")
+                if cid:
+                    history[cid] = entry
+            except json.JSONDecodeError:
+                continue
+    except Exception as e:
+        print(f"[merge] 读取历史 results 失败: {e}，跳过合并")
+        return current
+
+    # 建立 current 的 id -> (fname, result) 映射
+    current_by_id = {}
+    for fname, res in current.items():
+        cid = res.get("id", "")
+        if cid:
+            current_by_id[cid] = (fname, res)
+
+    merged = dict(current)  # 先全量保留当前结果
+    merged_count = 0
+    for cid, hist_entry in history.items():
+        if cid in current_by_id:
+            continue  # 当前已跑过，以当前为准
+        # 历史有但当前没跑的，补进来（用id当伪文件名占位）
+        pseudo_fname = f"__hist__{cid}.py"
+        merged[pseudo_fname] = hist_entry
+        merged_count += 1
+
+    print(f"[merge] 合并历史结果 {merged_count} 条，合计 {len(merged)} 条")
+    return merged
 
 
 def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> None:

@@ -44,9 +44,10 @@ triggers:
   ```
   cd e2eProject
   python3 .claude/skills/test-script-run-collect/run_collect.py \
-      --script-dir "generated_scripts/{需求名}_{日期}" --keep-results
+      --script-dir "generated_scripts/{需求名}_{日期}" --keep-results --merge-results
   ```
   > 没有 `results.json` 的，**务必**先跑这一步；不要凭口号/记忆猜测哪些失败。
+  > `--merge-results` 确保重跑后报告仍包含全部用例（合并历史结果）。
 
 ### 第二步：生成失败反馈包
 
@@ -89,10 +90,10 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 
 ### 第五步：重跑受影响用例
 
-对**被重写**的用例，用 `run_collect` 定向重跑（`--keep-results` 保留本轮结果供下一轮）：
+对**被重写**的用例，用 `run_collect` 定向重跑（`--keep-results` 保留本轮结果供下一轮，`--merge-results` 合并历史结果保证报告完整）：
 ```
 python3 .claude/skills/test-script-run-collect/run_collect.py \
-    --script-dir "generated_scripts/{需求名}_{日期}" --filter <case_id> --keep-results
+    --script-dir "generated_scripts/{需求名}_{日期}" --filter <case_id> --keep-results --merge-results
 ```
 
 ### 第六步：判定是否进入下一轮

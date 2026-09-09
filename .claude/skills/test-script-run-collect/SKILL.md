@@ -37,6 +37,7 @@ triggers:
    - `--headless`：强制无头；缺省尊重脚本内 `HEADLESS`
    - `--max-retry 1`：对疑似时序抖动的失败用例重跑确认，通过则标"通过(重跑)"
    - `--keep-results`：保留 `results.json`；默认清理
+   - `--merge-results`：合并已有 `results.json` 历史结果再生成报告；配合 `--filter` 使用，避免报告只含部分用例
    - `--no-live`：跳过失败用例截图补拍（离线/CD 环境）
 
 ## 处理流程
@@ -70,7 +71,7 @@ triggers:
 cd e2eProject
 python3 .claude/skills/test-script-run-collect/run_collect.py \
     --script-dir "generated_scripts/信息管理-逝者信息_2026-09-07" \
-    [--filter TC-PERSON] [--headless] [--max-retry 1] [--keep-results] [--no-live]
+    [--filter TC-PERSON] [--headless] [--max-retry 1] [--keep-results] [--merge-results] [--no-live]
 ```
 
 > **提速（默认开启）**：`run_collect.py` 默认用**共享单浏览器模式**（`--shared-browser`）——
@@ -124,6 +125,7 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 | `--no-live` | 关 | 跳过截图补拍 |
 | `--shared-browser` | 开 | 共享单浏览器跑全部用例（提速），脚本自己跑仍独立可运行 |
 | `--no-shared-browser` | 关 | 退回逐脚本独立浏览器+子进程（旧行为） |
+| `--merge-results` | 关 | 合并已有 `results.json` 历史结果再生成报告（配合 `--filter` 使用，避免报告只含部分用例） |
 
 ## 校验清单
 - [ ] `run_collect.py` 通过 `python -m py_compile`；`--help` 参数完整

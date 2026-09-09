@@ -151,9 +151,10 @@ triggers:
 运行命令（由子会话执行）：
 ```
 python3 .claude/skills/test-script-run-collect/run_collect.py \
-    --script-dir "generated_scripts/{需求名}_{日期}" --keep-results \
+    --script-dir "generated_scripts/{需求名}_{日期}" --keep-results --merge-results \
     [--filter TC-XXX] [--headless] [--max-retry 1]
 ```
+> `--merge-results`：与 `--filter` 配合使用时，合并已有 `results.json` 历史结果，确保报告始终包含全部用例，不会只剩被过滤的几条。
 
 **人工确认点**：步骤4 沿用步骤3 已确认的登录态与 `BASE_URL`；仅当登录态缺失/过期时再补充确认。
 
@@ -171,7 +172,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
     --script-dir "generated_scripts/{需求名}_{日期}" --round 1 --max-rounds 2
 ```
 - 无失败用例 → 本步直接结束。
-- 分类处置后，对被重写的用例用 run_collect 定向重跑：`--filter {case_id} --keep-results`。
+- 分类处置后，对被重写的用例用 run_collect 定向重跑：`--filter {case_id} --keep-results --merge-results`（`--merge-results` 保证重跑后报告仍含全部用例）。
 
 ## 流程控制规则
 
@@ -198,7 +199,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 - [ ] 五个步骤已按子会话 prompt 模板分别配置，各含 技能文件/输入/参考/输出
 - [ ] 步骤2 自动指向步骤1 的 `{日期_时间}` 目录，不让用户重选
 - [ ] 步骤3 需向用户索要 BASE_URL；登录态按「登录态统一约定」落位到 `{批次目录}/.auth/auth_state.json`
-- [ ] 步骤4 明确带 `--keep-results` 保留 results.json 供步骤5 读取
+- [ ] 步骤4 明确带 `--keep-results --merge-results` 保留 results.json 并保证报告完整
 - [ ] 步骤5 按 `--max-rounds` 自动迭代，遵守三条红线
 - [ ] 渐进式读取约定写入各步与流程控制（长文件分批/分块、步骤3 用例批量生成）
 - [ ] 流程控制规则齐全：顺序执行/检查点/失败处理/进度报告/人工确认点/闭环终止/完成报告
