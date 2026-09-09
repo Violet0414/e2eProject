@@ -95,14 +95,17 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 打开目标页面读取真实 DOM，采集每个页面上真实的 `data-testid` 及上下文（label/placeholder/按钮文本/只读/富文本），
 形成 `testids.json` 供第六步反查生成定位器。**规则**：
 1. 确认 `BASE_URL` 与 `auth_state.json`（登录态），缺省自动扫既有批次目录
-2. 对每个 `p ∈ P`：`key = sha1(base_url + p)`
-   - 若 `generated_scripts/.testid_cache/{key}.json` 存在且 `cache_key` 匹配 → **命中**，读缓存，不重采
-   - 否则 **未命中** → 调本技能 `collect_testids.py` 实时采集写缓存：
+2. 对集合 P：
+   - **缓存优先**：对每个 `p ∈ P`，`key = sha1(base_url + "|" + p)`（与采集脚本 `cache_key()` 公式一致）；
+     `generated_scripts/.testid_cache/{key}.json` 存在且 `cache_key` 匹配 → **命中**，读缓存，不重采
+   - **批量采集（推荐，一次登录遍历全部未命中页面，浏览器只启动一次）**：
      ```
-     python3 collect_testids.py --base-url {BASE_URL} --route-path {p} \
-       --auth-state {auth_state.json} --headless \
-       --out generated_scripts/.testid_cache/{key}.json
+     python3 collect_testids.py --base-url {BASE_URL} --auth-state {auth_state.json} \
+       --headless --route-paths {routes.txt} --out-dir generated_scripts/.testid_cache
      ```
+     `routes.txt` 每行一个未命中 `route_path`（跳过空行与 `#` 注释）；脚本自动按 `cache_key`
+     写回缓存目录，命名与单页缓存一致，逐页打印进度与结果
+   - **单页补采**：只需补采个别页面时，仍可用单页模式 `--route-path {p} --out ...`
    - 采集失败（退出码非 0）→ 记录降级标记，该页定位器走纯推断，并明确告知用户
 3. 将本批次用到的 testids.json 复制一份到 `{输出目录}/testids.json`，供 README/审计引用
 4. 报告每页 `main_count / dialog_count` 摘要；说明是否命中缓存、是否降级
@@ -160,6 +163,9 @@ python3 .claude/skills/test-script-generate-standalone/gen_script.py \
    退出码 0=全部成功 / 1=有失败（按提示修片段后重跑，可用 `--only` 只重渲失败用例）/ 2=参数错误
 6. 分批生成（>20 条）时，**同页面片段跨批复用**：第二批不再重写已生成的 page 片段，只补新用例的
    `cases/{case_id}/` 并重跑渲染命令
+7. **并行分片（提速）**：用例多时可拆多个生成会话并行——**按页面/模块划分**用例组，各会话只写自己负责的
+   `cases/{case_id}/` 片段（含 `spec.json` + `steps.py`）；**同页面的 page 片段仅由一人写**，避免重复冲突。
+   全部片段就绪后统一跑一次 `gen_script.py` 渲染命令即可（渲染是纯本地操作，与片段生成解耦，可最后一次性执行）
 
 ### 第七步：生成 README.md
 输出目录下写 `README.md`，说明：配置文件区位置、如何填 BASE_URL/账号、如何用 Skill 2 运行、
@@ -528,7 +534,7 @@ if __name__ == "__main__":
 ## 真实 data-testid 采集说明
 
 - **采集脚本**：本技能自带 `.claude/skills/test-script-generate-standalone/collect_testids.py`，仅依赖 playwright，可脱离 MCP 环境独立跑。
-- **缓存位置**：`generated_scripts/.testid_cache/{sha1(base_url+route_path)}.json`，跨批次共享。
+- **缓存位置**：`generated_scripts/.testid_cache/{sha1(base_url + "|" + route_path)}.json`（与 `cache_key()` 公式一致），跨批次共享。
 - **命中判定**：缓存文件存在且 `cache_key` 一致即复用，默认不自动过期（页面改版后删缓存或对采集脚本加 `--refresh` 强制重采）。
 - **schema**：顶层含 `cache_key/base_url/route_path/collected_at/add_dialog/elements/index/summary`；`elements[]` 为每个真实 testid 的上下文，`index` 为 `by_label/by_placeholder/by_button_text` 反查索引，`summary.degraded` 标记是否降级。
 - **采集范围**：主页面 route（`scope=main`）+ 存在"新增"按钮时自动点开弹窗二次采集（`scope=add_dialog`）。编辑/详情弹窗本次不采。

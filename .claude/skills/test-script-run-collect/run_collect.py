@@ -7,7 +7,8 @@
 
 用法：
   python3 run_collect.py --script-dir <目录> [--base-url ...] [--timeout 60]
-      [--headless] [--filter TC-PERSON] [--max-retry 1] [--keep-results] [--no-live]
+      [--headless] [--filter TC-PERSON,TC-BURIAL] [--max-retry 1] [--keep-results] [--no-live]
+  （--filter 支持逗号分隔多前缀，一次跑多个用例组）
 
 退出码：0 = 完成（可能含失败用例）；1 = 参数错误 / 目录无效。
 """
@@ -39,7 +40,8 @@ def parse_args():
     p.add_argument("--base-url", default="", help="截图补拍用基础地址；缺省从脚本内 BASE_URL= 提取")
     p.add_argument("--timeout", type=int, default=60, help="每个脚本执行超时秒数，默认 60")
     p.add_argument("--headless", action="store_true", help="强制无头运行（HEADLESS=True）")
-    p.add_argument("--filter", default="", help="case_id 前缀过滤，只跑匹配用例，如 TC-PERSON")
+    p.add_argument("--filter", default="",
+                   help="case_id 前缀过滤，只跑匹配用例；支持逗号分隔多前缀，如 TC-PERSON,TC-BURIAL")
     p.add_argument("--max-retry", type=int, default=1, help="偶发时序失败重跑次数，默认 1")
     p.add_argument("--keep-results", action="store_true", help="保留 results.json/jsonl 等临时产物（默认清理）")
     p.add_argument("--no-live", action="store_true", help="跳过失败用例截图补拍（无需浏览器）")
@@ -281,7 +283,12 @@ def main() -> int:
 
     all_py = sorted(f for f in os.listdir(".") if f.endswith(".py") and not f.startswith("_"))
     if args.filter:
-        py_files = [f for f in all_py if f.replace(".py", "").startswith(args.filter)]
+        prefixes = [p.strip() for p in args.filter.split(",") if p.strip()]
+        if not prefixes:
+            print(f"[run_collect] 错误: --filter 未解析出有效前缀: {args.filter!r}", file=sys.stderr)
+            return 1
+        py_files = [f for f in all_py
+                    if any(f.replace(".py", "").startswith(p) for p in prefixes)]
     else:
         py_files = all_py
 

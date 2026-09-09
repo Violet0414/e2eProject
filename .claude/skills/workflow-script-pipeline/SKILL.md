@@ -41,7 +41,8 @@ triggers:
 
 ## 核心规则：每步独立子会话 + 渐进式读取
 
-**禁止在 `workflow` 主会话中直接执行任何单点技能逻辑**，每个步骤必须用 Agent 打开独立子会话执行。
+**禁止在 `workflow` 主会话中直接执行任何单点技能逻辑**，每个步骤用 Agent 打开独立子会话执行；
+步骤3 用例多时可进一步**拆并行子会话分片**（见下）。
 
 ### 子会话配置
 
@@ -54,10 +55,23 @@ triggers:
   4. 明确要求将结果写入指定的输出文件（目录不存在先创建）
   5. 要求用**渐进式读取**处理长文件（见下）
 
+### 并行分片（提速）
+
+**步骤3（生成自包含脚本）**：用例多（≥20 条）时，把用例**按页面/模块划分**，拆 2~3 个并行
+general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_id}/` 片段。约束：
+- **testid 批量采集先做一次**（一次登录遍历全部未命中页面，浏览器只启动一次），完成后各分片读缓存，不再各自采
+- **同页面的 page 片段仅由一个分片写**（按页面划分天然无冲突）
+- 各分片全部就绪后，统一跑一次 `gen_script.py` 渲染 + `selfcheck.py` 自检
+
+**步骤5（失败反馈重写）**：失败用例多（≥10 条）时，按 `fix_loop_work/{case_id}.json` 分组拆 2~3 个并行子会话，
+各会话只分类/重写自己那组（不同子会话改不同 `.py`，无写冲突），**先文本后截图**分类。
+
+两处共同约定：分片之间只回传进度，主会话**不阻断等待**，全部就绪后再推进。
+
 ### 渐进式读取约定（各子会话必须遵守）
 
 - **探索记录 / 用例md / 反馈文件**等长文件：子会话用 `Read` 的 `offset + limit` 或按章节/按批次渐进读取，**不要**一次 `Read` 整文件载入自身上下文。
-- **步骤3 用例多（≥20 条）时分批**：每批生成 N 条脚本，每批结束向主会话回传 `已完成 n/t`，主会话据此推进。
+- **步骤3 用例多（≥20 条）时并行分片**：按页面/模块拆 2~3 个并行子会话写 `_specs/cases/`，各分片回传 `已完成 n/t`（**仅回传进度，主会话不阻断等待**），全部就绪后统一渲染。
 - 单点技能自身已内置"分批生成/缓存优先/`--max-rounds`"等防溢出机制，工作流应**沿用**，不重复实现。
 
 ### 子会话 prompt 模板
@@ -126,7 +140,7 @@ triggers:
 - **必填运行前置**：`BASE_URL`（向用户索要）+ 登录态 `auth_state.json`
 - **登录态统一约定**：`auth_state.json` 一律落在 `generated_scripts/{需求名}_{日期}/.auth/auth_state.json`（与生成脚本 `AUTH_STATE` 默认值 `.auth/auth_state.json` 一致，脚本独立运行即读此路径）。来源：优先复用已有登录态（项目根 `.auth/auth_state.json` 或既有批次目录），否则导出当前已登录会话后写入批次 `.auth/` 目录；仍无则走 `login()` 填账号兜底。
 - **输出目录**：`./generated_scripts/{需求名}_{日期}/`（每用例一个 `.py` + `testids.json` + README）
-- **渐进式**：用例 ≥ 20 条时**分批生成**，每批回传进度；步骤二数据采集按该技能缓存优先机制。
+- **渐进式**：用例 ≥ 20 条时**并行分片生成**（见「核心规则」节）；testid 采集按该技能**批量模式**一次登录遍历全部页面（缓存优先，命中跳过重采）。
 - **自检**：步骤3 子会话末尾用该技能自带 `selfcheck.py` 做 6 项检查，error 级必须修复后交付。
 
 子会话 prompt 示例：
@@ -134,8 +148,16 @@ triggers:
 1. 先读取技能定义文件：./.claude/skills/test-script-generate-standalone/SKILL.md
 2. 读取输入文件：{时间戳}_测试用例.md（文件较大时按批次渐进读取，逐批解析用例）
 3. BASE_URL：{用户提供}；登录态 auth_state.json：写入/复用 `{批次目录}/.auth/auth_state.json`（见「登录态统一约定」）
-4. 严格按规则为每个用例生成自包含脚本到 ./generated_scripts/{需求名}_{日期}/：按技能内「差异片段协议」先写 `_specs/` 差异片段（页面层片段每页面一份、每用例 spec.json+steps.py），再调 `gen_script.py --spec-dir ... --out ...` 渲染，**不要逐个手写全量脚本**
-5. 用 ./generated_scripts/.testid_cache 采集真实 testid；未覆盖字段按语义 fallback 兜底
+4. **testid 批量采集（先做一次）**：把全部去重 route_path 写入 {routes.txt}（每行一个，可含 # 注释），执行
+   python3 .claude/skills/test-script-generate-standalone/collect_testids.py \
+       --base-url {BASE_URL} --auth-state {批次目录}/.auth/auth_state.json \
+       --headless --route-paths {routes.txt} --out-dir generated_scripts/.testid_cache
+   （命中缓存页面自动跳过重采；仅个别页面补采时可用单页模式 --route-path + --out）
+5. **并行分片生成**：按页面/模块把用例拆给多个并行子会话，各会话只写自己负责的 `_specs/cases/{case_id}/`（spec.json + steps.py）；**同页面的 page 片段仅一人写**。全部就绪后统一调
+   python3 .claude/skills/test-script-generate-standalone/gen_script.py \
+       --spec-dir "generated_scripts/{需求名}_{日期}/_specs" \
+       --out "generated_scripts/{需求名}_{日期}"
+   渲染（**不要逐个手写全量脚本**）
 6. 用 selfcheck.py 做 6 项自检并修复 error 项（改片段后可用 gen_script.py `--only` 重渲该用例）
 7. 回传：生成脚本数、自检结果（错误/警告数）、真实 testid 覆盖度、输出目录
 ```
@@ -172,7 +194,10 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
     --script-dir "generated_scripts/{需求名}_{日期}" --round 1 --max-rounds 2
 ```
 - 无失败用例 → 本步直接结束。
-- 分类处置后，对被重写的用例用 run_collect 定向重跑：`--filter {case_id} --keep-results --merge-results`（`--merge-results` 保证重跑后报告仍含全部用例）。
+- **并行分片分类/重写**：失败用例多（≥ 10 条）时，按 `fix_loop_work/{case_id}.json` 分组拆 2~3 个并行子会话，
+  各会话只分类/重写自己那组（不同子会话改不同 `.py`）；**先文本后截图**（先用 error 文本+疑似行分类，error 无法判定才看截图）。
+- 对被重写的用例用 run_collect **一次**定向重跑：
+  `--filter {case_id1},{case_id2},... --keep-results --merge-results`（`--filter` 支持逗号分隔多前缀，避免多次启动进程；`--merge-results` 保证重跑后报告仍含全部用例）。
 
 ## 流程控制规则
 
@@ -199,7 +224,8 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 - [ ] 五个步骤已按子会话 prompt 模板分别配置，各含 技能文件/输入/参考/输出
 - [ ] 步骤2 自动指向步骤1 的 `{日期_时间}` 目录，不让用户重选
 - [ ] 步骤3 需向用户索要 BASE_URL；登录态按「登录态统一约定」落位到 `{批次目录}/.auth/auth_state.json`
+- [ ] 步骤3 testid 采集用**批量模式**（`--route-paths` + `--out-dir`，一次登录遍历全部未命中页面）；用例 ≥ 20 条时按页面/模块**并行分片**，同页面 page 片段仅一人写，仅回传进度不阻断
 - [ ] 步骤4 明确带 `--keep-results --merge-results` 保留 results.json 并保证报告完整
-- [ ] 步骤5 按 `--max-rounds` 自动迭代，遵守三条红线
-- [ ] 渐进式读取约定写入各步与流程控制（长文件分批/分块、步骤3 用例批量生成）
+- [ ] 步骤5 按 `--max-rounds` 自动迭代，遵守三条红线；失败用例 ≥ 10 条时并行分片分类/重写，重跑用 `--filter` 逗号多值一次完成
+- [ ] 渐进式读取约定写入各步与流程控制（长文件分批/分块、步骤3 并行分片）
 - [ ] 流程控制规则齐全：顺序执行/检查点/失败处理/进度报告/人工确认点/闭环终止/完成报告

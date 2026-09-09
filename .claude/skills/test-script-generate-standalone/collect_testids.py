@@ -6,17 +6,28 @@
 并自动点开"新增"弹窗二次采集，产出结构化 testids.json 缓存，供 SKILL 结合测试用例反查
 真实 testid 生成脚本定位器。仅依赖 playwright，可脱离 MCP 环境独立运行。
 
-用法：
+用法（单页模式，逐页冷启动浏览器）：
   python3 collect_testids.py \
       --base-url "http://..." --route-path "/business/..." \
       --auth-state "auth_state.json" \
       --out "testids.json" [--no-dialog] [--headless] [--timeout-ms 20000]
-退出码：0=成功；1=运行/采集失败（降级信号）；2=参数错误。
+
+用法（批量模式，一次登录遍历多个页面，浏览器只启动一次）：
+  python3 collect_testids.py \
+      --base-url "http://..." --route-paths "routes.txt" \
+      --auth-state "auth_state.json" \
+      --out-dir "generated_scripts/.testid_cache" [--headless]
+
+  --route-paths 支持：文件路径（每行一个 route_path，跳过空行与 # 注释）或逗号分隔字符串。
+  批量模式按 cache_key 写回 {out_dir}/{sha1(base_url|route_path)}.json，与单页缓存命名一致。
+退出码：0=全部成功；1=有页面采集失败（降级信号）；2=参数错误。
 """
 import argparse
 import hashlib
 import json
+import os
 import sys
+import traceback
 from datetime import datetime
 
 # =============================================================================
@@ -194,28 +205,98 @@ def cache_key(base_url: str, route_path: str) -> str:
 # ⑥ 主流程
 # =============================================================================
 
-def main() -> int:
+def parse_routes(route_path: str, route_paths: str) -> list[str]:
+    """解析待采集路由集合。单页模式返回 [route_path]；批量模式支持
+    逗号分隔字符串或文件路径（每行一个 route_path，跳过空行与 # 注释。
+    行内尾注释需以 ' # ' 空格井号分隔，避免误伤 hash 路由中的 #）。"""
+    if route_paths:
+        if os.path.isdir(route_paths):
+            print(f"[collect_testids] 错误: 路由路径是目录而非文件: {route_paths}",
+                  file=sys.stderr)
+            return []
+        if os.path.isfile(route_paths):
+            try:
+                with open(route_paths, encoding="utf-8") as f:
+                    lines = [ln.split(" # ", 1)[0].strip() for ln in f]
+            except (OSError, UnicodeDecodeError) as e:
+                print(f"[collect_testids] 错误: 无法读取路由文件 {route_paths}: {e}",
+                      file=sys.stderr)
+                return []
+            return [ln for ln in lines if ln and not ln.lstrip().startswith("#")]
+        return [p.strip() for p in route_paths.split(",") if p.strip()]
+    return [route_path] if route_path else []
+
+
+def collect_route(page, base_url: str, route_path: str,
+                  no_dialog: bool, timeout_ms: int) -> dict:
+    """在已登录的 page 上采集单个 route，返回 testids.json payload（不含浏览器生命周期）。"""
+    page.goto(base_url + route_path)
+    page.wait_for_load_state("networkidle")
+
+    main_elements = dump_testids(page, "main")
+
+    add_dialog = {"opened": False, "title": ""}
+    if not no_dialog:
+        add_sel = find_add_button(page, main_elements)
+        if add_sel and page.locator(add_sel).count() > 0:
+            page.locator(add_sel).first.click()
+            page.wait_for_timeout(600)
+            opened, title = open_add_dialog(page, timeout_ms)
+            add_dialog = {"opened": opened, "title": title}
+            if opened:
+                main_elements += dump_testids(page, "add_dialog")
+
+    index = build_index(main_elements)
+    return {
+        "schema_version": 1,
+        "cache_key": cache_key(base_url, route_path),
+        "base_url": base_url,
+        "route_path": route_path,
+        "collected_at": datetime.now().isoformat(),
+        "collector": "collect_testids.py",
+        "page_title": page.title(),
+        "add_dialog": add_dialog,
+        "elements": main_elements,
+        "index": index,
+        "summary": {
+            "main_count": sum(1 for e in main_elements if e["scope"] == "main"),
+            "dialog_count": sum(1 for e in main_elements if e["scope"] == "add_dialog"),
+            "degraded": False,
+        },
+    }
+
+
+def write_payload(payload: dict, out_path: str) -> None:
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="采集页面真实 data-testid 生成 testids.json")
     parser.add_argument("--base-url", required=True)
-    parser.add_argument("--route-path", required=True)
+    parser.add_argument("--route-path", default="",
+                        help="单页模式：单个路由，与 --route-paths 二选一")
+    parser.add_argument("--route-paths", default="",
+                        help="批量模式：多个路由，逗号分隔字符串或文件路径(每行一个，支持 # 注释)")
     parser.add_argument("--auth-state", default="")
     parser.add_argument("--login-url-path", default="/business/#/login")
     parser.add_argument("--username", default="")
     parser.add_argument("--password", default="")
     parser.add_argument("--sms-code", default="")
-    parser.add_argument("--out", default="")
+    parser.add_argument("--out", default="", help="单页模式输出 testids.json 文件路径")
+    parser.add_argument("--out-dir", default="",
+                        help="批量模式输出目录（按 cache_key 命名写入，目录不存在自动创建）")
     parser.add_argument("--no-dialog", action="store_true", help="不自动打开新增弹窗采集")
     parser.add_argument("--headless", action="store_true")
     parser.add_argument("--timeout-ms", type=int, default=20000)
-    args = parser.parse_args()
+    return parser
 
-    if not args.out:
-        print("[collect_testids] 错误: 缺少 --out 输出路径", file=sys.stderr)
-        return 2
 
+def run_collection(args, routes: list[str], is_batch: bool) -> int:
+    """启动浏览器→登录一次→逐页采集。返回退出码（0=全部成功 / 1=有失败或运行异常）。"""
+    # 延迟导入：让 --help 与参数校验在无 playwright 环境仍可用
     from playwright.sync_api import sync_playwright
-
-    page = None
+    failed = []
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=args.headless)
@@ -225,50 +306,26 @@ def main() -> int:
             page = context.new_page()
             login(page, args.base_url, args.login_url_path,
                   args.username, args.password, args.sms_code, args.auth_state)
-            page.goto(args.base_url + args.route_path)
-            page.wait_for_load_state("networkidle")
 
-            main_elements = dump_testids(page, "main")
-
-            add_dialog = {"opened": False, "title": ""}
-            if not args.no_dialog:
-                add_sel = find_add_button(page, main_elements)
-                if add_sel and page.locator(add_sel).count() > 0:
-                    page.locator(add_sel).first.click()
-                    page.wait_for_timeout(600)
-                    opened, title = open_add_dialog(page, args.timeout_ms)
-                    add_dialog = {"opened": opened, "title": title}
-                    if opened:
-                        main_elements += dump_testids(page, "add_dialog")
-
-            index = build_index(main_elements)
-            payload = {
-                "schema_version": 1,
-                "cache_key": cache_key(args.base_url, args.route_path),
-                "base_url": args.base_url,
-                "route_path": args.route_path,
-                "collected_at": datetime.now().isoformat(),
-                "collector": "collect_testids.py",
-                "page_title": page.title(),
-                "add_dialog": add_dialog,
-                "elements": main_elements,
-                "index": index,
-                "summary": {
-                    "main_count": sum(1 for e in main_elements if e["scope"] == "main"),
-                    "dialog_count": sum(1 for e in main_elements if e["scope"] == "add_dialog"),
-                    "degraded": False,
-                },
-            }
+            for i, route in enumerate(routes, 1):
+                page = context.new_page()  # 每页独立 tab：弹窗/脏 DOM 不跨页泄漏
+                try:
+                    payload = collect_route(page, args.base_url, route,
+                                            args.no_dialog, args.timeout_ms)
+                    out_path = (os.path.join(args.out_dir, payload["cache_key"] + ".json")
+                                if is_batch else args.out)
+                    write_payload(payload, out_path)
+                    s = payload["summary"]
+                    print(f"[collect_testids] OK [{i}/{len(routes)}] {route} "
+                          f"-> main={s['main_count']} dialog={s['dialog_count']} "
+                          f"dialog_opened={payload['add_dialog']['opened']} -> {out_path}")
+                except Exception as e:
+                    failed.append(route)
+                    print(f"[collect_testids] 失败 [{i}/{len(routes)}] {route}: {e}",
+                          file=sys.stderr)
+                finally:
+                    page.close()
             browser.close()
-
-        with open(args.out, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
-
-        s = payload["summary"]
-        print(f"[collect_testids] OK {args.route_path} "
-              f"-> main={s['main_count']} dialog={s['dialog_count']} "
-              f"dialog_opened={add_dialog['opened']}")
-        return 0
 
     except SystemExit:
         raise
@@ -276,9 +333,43 @@ def main() -> int:
         return 1
     except Exception as e:
         print(f"[collect_testids] 失败: {e}", file=sys.stderr)
-        import traceback
         traceback.print_exc()
         return 1
+
+    if failed:
+        print(f"[collect_testids] 批量完成，失败 {len(failed)} 页: {failed}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def main() -> int:
+    args = build_arg_parser().parse_args()
+
+    routes = parse_routes(args.route_path, args.route_paths)
+    if not routes:
+        print("[collect_testids] 错误: 需提供 --route-path 或 --route-paths", file=sys.stderr)
+        return 2
+    if args.route_path and args.route_paths:
+        print("[collect_testids] 错误: --route-path 与 --route-paths 互斥，仅用其一",
+              file=sys.stderr)
+        return 2
+
+    is_batch = bool(args.route_paths)
+    if is_batch:
+        if not args.out_dir:
+            print("[collect_testids] 错误: 批量模式需提供 --out-dir", file=sys.stderr)
+            return 2
+        try:
+            os.makedirs(args.out_dir, exist_ok=True)
+        except OSError as e:
+            print(f"[collect_testids] 错误: 无法创建 --out-dir {args.out_dir}: {e}",
+                  file=sys.stderr)
+            return 2
+    elif not args.out:
+        print("[collect_testids] 错误: 单页模式需提供 --out 输出路径", file=sys.stderr)
+        return 2
+
+    return run_collection(args, routes, is_batch)
 
 
 if __name__ == "__main__":

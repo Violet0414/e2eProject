@@ -63,7 +63,14 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 
 ### 第三步：逐失败用例分类根因
 
-读 `fix_feedbacks.md` 中每个失败项的**错误信息 + 截图 + 疑似行**，判定根因（关键step，决定是否重写）：
+读 `fix_feedbacks.md` 中每个失败项的**错误信息 + 截图 + 疑似行**，判定根因（关键step，决定是否重写）。
+
+**提速约定**：
+- **并行分片**：失败用例多（≥ 10 条）时，按 `fix_loop_work/{case_id}.json` 分组拆 2~3 个并行子会话，
+  各会话只分类/重写自己那组（不同子会话改不同 `.py`，无写冲突）；不重写类（real_bug / missing_data / env）
+  只写进该组反馈标记交人工。
+- **文本优先，截图按需**：先用 error 文本 + `candidate_lines`（疑似行）分类；仅当 error 文本无法判定根因
+  （如无堆栈、断言值不直观）时才打开对应截图，避免逐条加载图像拖慢。
 
 | 根因类 | 典型错误特征 | 是否自动重写 |
 |--------|--------------|--------------|
@@ -90,11 +97,12 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 
 ### 第五步：重跑受影响用例
 
-对**被重写**的用例，用 `run_collect` 定向重跑（`--keep-results` 保留本轮结果供下一轮，`--merge-results` 合并历史结果保证报告完整）：
+对**被重写**的用例，用 `run_collect` **一次定向重跑全部**（`--keep-results` 保留本轮结果供下一轮，`--merge-results` 合并历史结果保证报告完整）：
 ```
 python3 .claude/skills/test-script-run-collect/run_collect.py \
-    --script-dir "generated_scripts/{需求名}_{日期}" --filter <case_id> --keep-results --merge-results
+    --script-dir "generated_scripts/{需求名}_{日期}" --filter <case_id1,case_id2,...> --keep-results --merge-results
 ```
+> `--filter` 支持逗号分隔多前缀，被重写用例一次跑完（共享单浏览器模式），避免逐条启动进程拖慢。
 
 ### 第六步：判定是否进入下一轮
 
@@ -120,9 +128,10 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 - [ ] 第一步已确认有运行结果文件；若无已用 `run_collect --keep-results` 重跑生成
 - [ ] `fix_feedbacks.md` + `fix_loop_work/{case_id}.json` 已生成，失败用例数与 `测试报告.md` 一致
 - [ ] 每个失败用例已完成根因分类，分类有错误信息依据
+- [ ] 失败用例多（≥ 10 条）时已按 `fix_loop_work/{case_id}.json` **并行分片**分类/重写（各子会话改不同 `.py`），且**先文本后截图**（error 无法判定才看截图）
 - [ ] 重写仅发生在 `locator`/`assertion_method`，且只改定位/断言行，五层结构未破坏
 - [ ] `real_bug` / `missing_data` 类**未被自动重写**，已如实标注并交人工
 - [ ] 未为凑通过修改预期结果或断言含义
-- [ ] 被重写用例已定向重跑（`--keep-results`），结果已更新
+- [ ] 被重写用例已**一次**重跑（`--filter` 逗号多值 + `--keep-results`），结果已更新
 - [ ] 达到 `--max-rounds` 或无可重写项时已停止并转为人工
 - [ ] 已向用户汇报：重写清单、每项修改内容、仍有几项待人工及原因
