@@ -59,7 +59,7 @@ triggers:
 
 **步骤3（生成自包含脚本）**：用例多（≥20 条）时，把用例**按页面/模块划分**，拆 2~3 个并行
 general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_id}/` 片段。约束：
-- **testid 批量采集先做一次**（一次登录遍历全部未命中页面，浏览器只启动一次），完成后各分片读缓存，不再各自采
+- **testid 批量采集先做一次**（一次登录遍历全部待采页面，浏览器只启动一次；脚本自动跳过缓存命中页，加 `--refresh` 强制重采），完成后各分片读缓存，不再各自采
 - **同页面的 page 片段仅由一个分片写**（按页面划分天然无冲突）
 - 各分片全部就绪后，统一跑一次 `gen_script.py` 渲染 + `selfcheck.py` 自检
 
@@ -143,6 +143,7 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
 - **输出目录**：`./generated_scripts/{需求名}_{日期}/`（每用例一个 `.py` + `testids.json` + README）
 - **渐进式**：用例 ≥ 20 条时**并行分片生成**（见「核心规则」节）；testid 采集按该技能**批量模式**一次登录遍历全部页面（缓存优先，命中跳过重采）。
 - **自检**：步骤3 子会话末尾用该技能自带 `selfcheck.py` 做 6 项检查，error 级必须修复后交付。
+- **命名 lint**：testid 批量采集默认按 `files/templates/testid_naming_convention.md` 做命名校验（结果在 testids.json 的 `lint` 字段）；`warn_count > 0` 时在回传统计中列出问题项，供反馈前端修复，不阻断流水线。
 
 子会话 prompt 示例：
 ```
@@ -160,7 +161,7 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
        --out "generated_scripts/{需求名}_{日期}"
    渲染（**不要逐个手写全量脚本**）
 6. 用 selfcheck.py 做 6 项自检并修复 error 项（改片段后可用 gen_script.py `--only` 重渲该用例）
-7. 回传：生成脚本数、自检结果（错误/警告数）、真实 testid 覆盖度、输出目录
+7. 回传：生成脚本数、自检结果（错误/警告数）、真实 testid 覆盖度、testid 命名 lint 结果（warn>0 时列出 bad_format/duplicates/suspected_dynamic）、输出目录
 ```
 
 ### 步骤4：运行收集（test-script-run-collect）

@@ -57,6 +57,7 @@ quick 模式通过「批量采集 + 抽样交互」保证类型覆盖；full 模
 - **登录凭据**（可选）：如页面需要登录，用户提供账号密码
 - **探索深度**（可选）：`quick`（默认，批量采集+抽样交互，速度快）/ `full`（全量逐个操作，最完整）
 - **参考文档**：`~/{项目目录}/files/templates/test_points_requirement.md`
+- **命名规范**：`~/{项目目录}/files/templates/testid_naming_convention.md`（data-testid 命名硬性规则与推荐结构，记录/反馈 testid 时对照）
 
 ## 探索流程
 
@@ -253,7 +254,7 @@ quick 模式通过「批量采集 + 抽样交互」保证类型覆盖；full 模
 4. 禁止使用页面动态随机ID、临时动态class作为定位器
 5. 针对页面初始化自带默认值、DOM 初始状态未展示placeholder，清空内容后才显示占位符的输入框： 必须先通过 Playwright 操作清空输入框内容，再调用page.locator().getAttribute('placeholder')获取真实占位符文本，禁止直接判定为无占位符； 获取到占位符后，若该元素无 data-testid，则优先使用表单标签约束 + input[placeholder="xxx"]作为定位器；
 「默认提示」列统一格式填写：页面初始默认值：{默认值}，清空后占位符：{占位符文本}。
-6. **【强制】每个元素必须先检查 data-testid**：探索任何交互元素（输入框、下拉、按钮、单选/多选、日期控件等）时，必须先检查是否存在 `data-testid` 属性（quick 模式在批量采集阶段一次性提取，full 模式逐个用 `page.locator(...).get_attribute('data-testid')` 检查）。若存在，**必须**将 `[data-testid="xxx"]` 作为首选定位器记录在"元素定位选择器"列的第一行，并在 `recorded_code.py` 中优先使用该选择器。
+6. **【强制】每个元素必须先检查 data-testid**：探索任何交互元素（输入框、下拉、按钮、单选/多选、日期控件等）时，必须先检查是否存在 `data-testid` 属性（quick 模式在批量采集阶段一次性提取，full 模式逐个用 `page.locator(...).get_attribute('data-testid')` 检查）。若存在，**必须**将 `[data-testid="xxx"]` 作为首选定位器记录在"元素定位选择器"列的第一行，并在 `recorded_code.py` 中优先使用该选择器。若发现 testid 不符合命名规范（非 kebab-case、页面内重复、疑似动态值），如实在探索记录「备注」列标注，供后续按 `files/templates/testid_naming_convention.md` 反馈前端修复。
 
 #### 4.2 各类型控件标准CSS选择器规范（必须严格遵循）
 ##### 1. 单行文本输入框 el-input

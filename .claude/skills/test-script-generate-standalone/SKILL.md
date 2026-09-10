@@ -96,17 +96,17 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 形成 `testids.json` 供第六步反查生成定位器。**规则**：
 1. 确认 `BASE_URL` 与 `auth_state.json`（登录态），缺省自动扫既有批次目录
 2. 对集合 P：
-   - **缓存优先**：对每个 `p ∈ P`，`key = sha1(base_url + "|" + p)`（与采集脚本 `cache_key()` 公式一致）；
-     `generated_scripts/.testid_cache/{key}.json` 存在且 `cache_key` 匹配 → **命中**，读缓存，不重采
-   - **批量采集（推荐，一次登录遍历全部未命中页面，浏览器只启动一次）**：
+   - **批量采集（推荐，一次登录遍历，浏览器只启动一次；脚本内置缓存跳过）**：
      ```
      python3 collect_testids.py --base-url {BASE_URL} --auth-state {auth_state.json} \
        --headless --route-paths {routes.txt} --out-dir generated_scripts/.testid_cache
      ```
-     `routes.txt` 每行一个未命中 `route_path`（跳过空行与 `#` 注释）；脚本自动按 `cache_key`
-     写回缓存目录，命名与单页缓存一致，逐页打印进度与结果
+     `routes.txt` 每行一个 `route_path`（**全部待采页面直接写入即可**，跳过空行与 `#` 注释）；
+     脚本自动按 `cache_key`（`sha1(base_url + "|" + route_path)`）预检缓存并跳过已采集页面，
+     **无需手工筛选未命中页**；页面改版后加 `--refresh` 强制全部重采；逐页打印进度与结果
    - **单页补采**：只需补采个别页面时，仍可用单页模式 `--route-path {p} --out ...`
    - 采集失败（退出码非 0）→ 记录降级标记，该页定位器走纯推断，并明确告知用户
+     （退出码 1 且 stderr 含「登录态失效」→ 是登录态问题而非单页降级，须先重新导出 auth_state）
 3. 将本批次用到的 testids.json 复制一份到 `{输出目录}/testids.json`，供 README/审计引用
 4. 报告每页 `main_count / dialog_count` 摘要；说明是否命中缓存、是否降级
 
@@ -535,8 +535,10 @@ if __name__ == "__main__":
 
 - **采集脚本**：本技能自带 `.claude/skills/test-script-generate-standalone/collect_testids.py`，仅依赖 playwright，可脱离 MCP 环境独立跑。
 - **缓存位置**：`generated_scripts/.testid_cache/{sha1(base_url + "|" + route_path)}.json`（与 `cache_key()` 公式一致），跨批次共享。
-- **命中判定**：缓存文件存在且 `cache_key` 一致即复用，默认不自动过期（页面改版后删缓存或对采集脚本加 `--refresh` 强制重采）。
-- **schema**：顶层含 `cache_key/base_url/route_path/collected_at/add_dialog/elements/index/summary`；`elements[]` 为每个真实 testid 的上下文，`index` 为 `by_label/by_placeholder/by_button_text` 反查索引，`summary.degraded` 标记是否降级。
+- **命中判定**：批量模式由脚本自动预检——缓存文件存在、可解析且 `cache_key` 一致即跳过不重采（损坏文件视为未命中自动覆盖）；加 `--refresh` 强制全部重采。默认不自动过期（页面改版后删缓存或加 `--refresh`）。
+- **登录态校验**：采集前脚本会用首个路由探测登录态，被重定向回登录页（`auth_state` 过期/凭据无效）则立即以退出码 1 终止并报错，不产出污染缓存；此时须重新导出 `auth_state.json` 后重跑。
+- **schema**：顶层含 `cache_key/base_url/route_path/collected_at/add_dialog/elements/index/lint/summary`；`elements[]` 为每个真实 testid 的上下文，`index` 为 `by_label/by_placeholder/by_button_text` 反查索引，`summary.degraded` 标记是否降级。
+- **命名 lint**：采集时默认按 `files/templates/testid_naming_convention.md` 校验（kebab-case 格式/页面内重复/疑似动态值，仅 warn 不阻断），结果写入 payload 的 `lint` 字段并打印摘要；`lint.warn_count > 0` 时须在回传统计中说明，反馈前端按规范修复（`--no-lint` 可跳过）。
 - **采集范围**：主页面 route（`scope=main`）+ 存在"新增"按钮时自动点开弹窗二次采集（`scope=add_dialog`）。编辑/详情弹窗本次不采。
 
 ## ⚠️ 诚实边界声明（务必告知用户）
@@ -556,6 +558,7 @@ if __name__ == "__main__":
 - [ ] `collect_testids.py` 通过 `python -m py_compile`；`--help`/缺失 `--out` 有明确报错（退出码 2）
 - [ ] `selfcheck.py` 通过 `python -m py_compile`；`--help` 输出 6 项检查说明
 - [ ] 采集正常：本批次 `generated_scripts/.testid_cache/{key}.json` 已生成或命中缓存，schema 含 `elements`+`index`，`add_dialog.opened` 符合实际
+- [ ] 命名 lint：`lint.warn_count == 0`，或在回传/README 中明确列出 `bad_format`/`duplicates`/`suspected_dynamic` 项并建议前端按 `files/templates/testid_naming_convention.md` 修复
 - [ ] 生成脚本页面层定位器：字段在 `index` 可反查到 → `tid()` 第一参为**真实 testid**（非推断值）
 - [ ] **真实 testid 覆盖度统计**写入 README（如"17/20 节点为真实 testid"）；覆盖度 <60% 时在汇报中提示可能页面未埋 testid 或字段在编辑/详情弹窗
 - [ ] 降级字段（编辑/详情弹窗、采集失败）已在页面层标注 `# testid 未采集到...` 注释，且在汇报中如实告知
