@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 # =============================================================================
 # ① 配置区 CONFIG —— 运行前在此填入目标系统信息与登录凭据（TODO 须补齐）
 # =============================================================================
-BASE_URL = ""                 # TODO: 目标系统基础地址，如 https://example.com
+BASE_URL = "http://10.10.40.37:8089"   # 目标系统主机根地址（不带 /sha-admin 后缀），脚本内以 BASE_URL + "/sha-admin/..." 拼接
 LOGIN_URL_PATH = ""           # TODO: 登录页路由，如 /business/#/login（AUTH_STATE 为空时走 login()）
 USERNAME = ""                 # TODO: 登录账号
 PASSWORD = ""                 # TODO: 登录密码
@@ -202,7 +202,7 @@ def run_case(page) -> None:
     # 例: pg.add_btn().click()                                      # 点击新增
     #     pg.title().fill("测试公告")                                # 填写公告标题
     #     pg.save_btn().click()                                     # 点击保存
-    #     check(page, "公告标题回显", pg.title(), expect="测试公告")   # 断言:标题回显
+    #     check(page, "标题回显", pg.heading(), expect="测试公告")     # 断言:标题回显（input 类字段回显断言用 input_value）
     ## placeholder:CASE_STEPS
 
 

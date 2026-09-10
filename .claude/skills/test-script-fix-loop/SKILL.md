@@ -51,26 +51,33 @@ triggers:
 
 ### 第二步：生成失败反馈包
 
-用本技能自带的 `build_feedbacks.py`，把失败用例的（错误 + 截图 + 脚本中疑似需改的定位/断言行）聚合成结构化反馈，供你逐条分类：
+用本技能自带的 `build_feedbacks.py`，把失败用例的（错误 + 截图 + 脚本中疑似需改的定位/断言行）聚合成结构化反馈，并**按根因表自动预分类**：
 ```
 python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
     --script-dir "generated_scripts/{需求名}_{日期}" \
     --round 1 --max-rounds 2
 ```
-- 产出 `{批次目录}/fix_feedbacks.md`（总览）+ `{批次目录}/fix_loop_work/{case_id}.json`（逐用例）。
+- 产出 `{批次目录}/fix_feedbacks.md`（总览，含**预分类统计**）+ `{批次目录}/fix_loop_work/{case_id}.json`（逐用例）。
+- 每份 JSON 含三个预分类字段：
+  - `auto_class`：规则匹配出的根因类（env / missing_data / assertion_method / real_bug / locator / timeout / null=未分类）；
+  - `confidence`：`high`（特征明确，可直接按该类处置）/ `low`（仅弱特征，需 LLM 复核）；
+  - `needs_screenshot`：`false` 表示高置信度、无需打开截图。
 - `--round`/`--max-rounds` 写进反馈，用于判断是否达到终止轮次。
 - 无失败用例时脚本直接提示"无反馈需生成"，本技能到此结束。
 
-### 第三步：逐失败用例分类根因
+### 第三步：逐失败用例"分类根因 + 按类处置"一次完成
 
-读 `fix_feedbacks.md` 中每个失败项的**错误信息 + 截图 + 疑似行**，判定根因（关键step，决定是否重写）。
+**不要**把分类和重写拆成两个阶段：读取 `fix_loop_work/{case_id}.json` 后，对每条用例**判定根因并立即处置**（改 `.py` 或标记交人工），一轮子会话内完成，避免重复读取往返。
 
-**提速约定**：
-- **并行分片**：失败用例多（≥ 10 条）时，按 `fix_loop_work/{case_id}.json` 分组拆 2~3 个并行子会话，
-  各会话只分类/重写自己那组（不同子会话改不同 `.py`，无写冲突）；不重写类（real_bug / missing_data / env）
-  只写进该组反馈标记交人工。
-- **文本优先，截图按需**：先用 error 文本 + `candidate_lines`（疑似行）分类；仅当 error 文本无法判定根因
-  （如无堆栈、断言值不直观）时才打开对应截图，避免逐条加载图像拖慢。
+**分类以预分类为起点，不逐条从零判**：
+- `confidence == "high"` → 直接按 `auto_class` 处置，**不再复核**（错误特征明确）；
+- `confidence == "low"` 或 `auto_class` 为 null → 才需复核：先看 error 文本 + `candidate_lines`（疑似行），仅当仍无法判定（如断言值不直观）**且** `needs_screenshot == true` 时才打开对应截图；`needs_screenshot == false` 的高置信度项一律不看图。
+- 复核结论与预分类冲突时，以复核为准（但违反红线操作前置条件的除外）。
+
+**并行分片**：失败用例多（≥ 10 条）时，按 `fix_loop_work/{case_id}.json` 分组拆 2~3 个并行子会话，
+各会话对**自己那组**一次完成"分类+重写"（不同子会话改不同 `.py`，无写冲突）；
+不重写类（real_bug / missing_data / env / timeout）只写进该组反馈标记交人工。
+分组时参照 `fix_feedbacks.md` 头部的**预分类统计**，把同类用例分给同一分片，减少复核成本。
 
 | 根因类 | 典型错误特征 | 是否自动重写 |
 |--------|--------------|--------------|
@@ -82,7 +89,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 
 分类依据：脚本运行是否有异常（堆栈） vs 断言失败（值不符）。**运行异常走定位/断言类；值不符走 real_bug。**
 
-### 第四步：按分类处置
+### 第四步：处置细则（承接第三步，同一次子会话内执行）
 
 **A. 可重写（locator / assertion_method）**——用生成器重写：
 1. 只定位失败用例的脚本 `{case_id}.py` 与失败行；
@@ -127,8 +134,9 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 - [ ] `build_feedbacks.py` 通过 `python -m py_compile`；`--help` 输出参数完整；缺 `--script-dir` 有明确报错
 - [ ] 第一步已确认有运行结果文件；若无已用 `run_collect --keep-results` 重跑生成
 - [ ] `fix_feedbacks.md` + `fix_loop_work/{case_id}.json` 已生成，失败用例数与 `测试报告.md` 一致
-- [ ] 每个失败用例已完成根因分类，分类有错误信息依据
-- [ ] 失败用例多（≥ 10 条）时已按 `fix_loop_work/{case_id}.json` **并行分片**分类/重写（各子会话改不同 `.py`），且**先文本后截图**（error 无法判定才看截图）
+- [ ] 已用 `build_feedbacks.py` 的预分类（`auto_class`/`confidence`/`needs_screenshot`）作为分类起点；高置信度项直接处置未重复复核，低置信度项复核有错误信息依据
+- [ ] 分类与处置在同一次子会话内完成（未拆成两个阶段重复读取）；失败用例多（≥ 10 条）时已按 `fix_loop_work/{case_id}.json` **并行分片**（各子会话改不同 `.py`，分组参照预分类统计）
+- [ ] 仅低置信度且 `needs_screenshot == true` 的用例才打开截图（先文本后截图）
 - [ ] 重写仅发生在 `locator`/`assertion_method`，且只改定位/断言行，五层结构未破坏
 - [ ] `real_bug` / `missing_data` 类**未被自动重写**，已如实标注并交人工
 - [ ] 未为凑通过修改预期结果或断言含义

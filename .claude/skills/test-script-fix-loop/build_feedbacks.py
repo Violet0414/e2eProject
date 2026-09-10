@@ -10,6 +10,10 @@ test-script-fix-loop 技能调用。读取批次目录下的 results.json / resu
   python3 build_feedbacks.py --script-dir <批次目录> [--results results.json]
       [--out fix_loop_work] [--include-passed] [--round 1] [--max-rounds 2]
 
+对每个失败用例按 SKILL 第三步根因表做规则预分类（auto_class + confidence），
+高置信度项子会话可直接处置，仅低置信度项需 LLM 复核；needs_screenshot 标记
+该用例分类时是否需要打开截图（高置信度一律 false，避免多模态读取拖慢）。
+
 退出码：0 = 正常；1 = 参数/路径错误或找不到结果文件。
 """
 import argparse
@@ -22,6 +26,17 @@ from pathlib import Path
 TARGET_LINE_RE = re.compile(
     r"tid\(|check\(|expect_toast\(|input_value\(|\.fill\(|\.click\(|data-testid|inner_text\(|RICH_TEXT|rich_text\("
 )
+
+# 根因自动预分类规则（对应 SKILL 第三步根因表，按顺序先命中先用）
+ENV_RE = re.compile(r"(登录态|会话过期|被弹回登录页|login|signin|unauthorized|401|BASE_URL)", re.I)
+MISSING_DATA_RE = re.compile(r"(前置数据|数据不存在|记录不存在|编辑目标.*为空|目标 id 为空|id.*不存在|no rows|缺少.*数据)", re.I)
+LOCATOR_RE = re.compile(
+    r"(waiting for|not found|no element|get_by_test_id|to_be_visible|strict mode violation|resolved to \d+ element)", re.I
+)
+TIMEOUT_RE = re.compile(r"(timeout|timed out|超时)", re.I)
+EMPTY_VAL_RE = re.compile(r"(received|got|but found)\s*''|值为空|取值为空")
+MISMATCH_RE = re.compile(r"(expected|received|expect)", re.I)
+STACK_RE = re.compile(r"(Traceback|TimeoutError|Error:|Exception)", re.I)
 
 
 def parse_args():
@@ -87,6 +102,44 @@ def truncate(text: str, limit: int = 1500) -> str:
     return text if len(text) <= limit else text[:limit] + "\n...[截断]"
 
 
+def auto_classify(error: str, cand_lines: list) -> tuple:
+    """按 SKILL 第三步根因表做规则预分类，返回 (根因类, 置信度)。
+
+    confidence: "high" = 错误特征明确，子会话可直接按该类处置；
+                "low"  = 仅弱特征，需 LLM 复核。根因类为 None 表示无法自动分类。
+    分类依据（SKILL 口径）：运行异常（堆栈）走定位/断言类；值不符走 real_bug。
+    """
+    err = error or ""
+    joined = " ".join(l["line"] for l in cand_lines)
+    if err:
+        if ENV_RE.search(err):
+            return "env", "high"
+        if MISSING_DATA_RE.search(err):
+            return "missing_data", "high"
+        if EMPTY_VAL_RE.search(err):
+            # 取值为空：疑似对 input/select/date 用了 inner_text（弱特征，需复核）
+            return ("assertion_method", "high") if "inner_text" in joined else ("assertion_method", "low")
+        if not STACK_RE.search(err) and MISMATCH_RE.search(err):
+            # 无堆栈的断言值不符 → 脚本运行成功、值与预期不符 → 测试发现
+            return "real_bug", "high"
+        if LOCATOR_RE.search(err):
+            return "locator", "high"
+        if TIMEOUT_RE.search(err):
+            return "timeout", "low"
+    # 错误文本无特征 → 退化为疑似行的弱特征
+    if "inner_text" in joined:
+        return "assertion_method", "low"
+    for cls, pat in (("locator", LOCATOR_RE), ("timeout", TIMEOUT_RE)):
+        if pat.search(joined):
+            return cls, "low"
+    return None, "low"
+
+
+def needs_screenshot(confidence: str) -> bool:
+    """是否需要打开截图辅助分类：仅低置信度项才看图（先文本后截图提速约定）。"""
+    return confidence != "high"
+
+
 def main() -> int:
     args = parse_args()
     script_dir = Path(args.script_dir).resolve()
@@ -113,6 +166,16 @@ def main() -> int:
     out_dir = script_dir / args.out
     out_dir.mkdir(exist_ok=True)
 
+    # 先做一轮预分类统计，写进总览头部，供子会话按类快速处置/分片
+    class_stats = {}
+    for e in failed:
+        cid = e.get("id") or e.get("name") or "unknown"
+        script = script_dir / f"{cid}.py"
+        lines = candidate_lines(script.read_text(encoding="utf-8")) if script.exists() else []
+        cls, _ = auto_classify(e.get("error", ""), lines)
+        key = cls or "未分类"
+        class_stats.setdefault(key, []).append(cid)
+
     md_lines = []
     md_lines.append("# 失败反馈包（fix-loop）")
     md_lines.append("")
@@ -120,7 +183,14 @@ def main() -> int:
     md_lines.append(f"- **当前轮次**：{args.round}（最大 {args.max_rounds} 轮）")
     md_lines.append(f"- **失败用例数**：{len(failed)} / {len(entries)}")
     md_lines.append(f"- **脚本目录**：`{script_dir}`")
-    if len(failed) >= args.max_rounds:
+    md_lines.append("")
+    md_lines.append("**预分类统计**（高置信度可直接处置，低置信度需复核；可重写类仅 locator / assertion_method）：")
+    md_lines.append("")
+    for cls_name in sorted(class_stats):
+        ids = class_stats[cls_name]
+        md_lines.append(f"- `{cls_name}`（{len(ids)} 条）：{', '.join(ids)}")
+    md_lines.append("")
+    if args.round >= args.max_rounds:
         md_lines.append("")
         md_lines.append("> ⚠️ 达到最大轮次，本轮之后应停止自动重写，未通过项转为人工处理。")
     md_lines.append("")
@@ -129,6 +199,7 @@ def main() -> int:
         cid = e.get("id") or e.get("name") or "unknown"
         script = script_dir / f"{cid}.py"
         lines = candidate_lines(script.read_text(encoding="utf-8")) if script.exists() else []
+        cls, conf = auto_classify(e.get("error", ""), lines)
         fb = {
             "id": cid,
             "name": e.get("name"),
@@ -138,6 +209,9 @@ def main() -> int:
             "script_abs": str(script),
             "script_exists": script.exists(),
             "candidate_lines": lines,
+            "auto_class": cls,
+            "confidence": conf,
+            "needs_screenshot": needs_screenshot(conf),
             "round": args.round,
             "max_rounds": args.max_rounds,
         }
@@ -146,8 +220,12 @@ def main() -> int:
         md_lines.append(f"## {cid} {e.get('name') or ''}")
         md_lines.append("")
         md_lines.append(f"- **状态**：`{e.get('status')}`")
+        md_lines.append(
+            f"- **预分类**：`{cls or '未分类'}`（置信度 {conf}）"
+            + ("" if fb["needs_screenshot"] else "，无需看截图")
+        )
         if e.get("screenshot"):
-            md_lines.append(f"- **截图**：`{e.get('screenshot')}`")
+            md_lines.append(f"- **截图**：`{e.get('screenshot')}`（仅分类存疑时打开）")
         md_lines.append(f"- **脚本**：`{fb['script_abs']}`")
         md_lines.append("")
         md_lines.append("**疑似需检查的定位/断言行**：")

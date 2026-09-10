@@ -64,7 +64,8 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
 - 各分片全部就绪后，统一跑一次 `gen_script.py` 渲染 + `selfcheck.py` 自检
 
 **步骤5（失败反馈重写）**：失败用例多（≥10 条）时，按 `fix_loop_work/{case_id}.json` 分组拆 2~3 个并行子会话，
-各会话只分类/重写自己那组（不同子会话改不同 `.py`，无写冲突），**先文本后截图**分类。
+各会话对自己那组一次完成"分类+重写"（不同子会话改不同 `.py`，无写冲突）；
+以 `build_feedbacks.py` 预分类为起点，高置信度直接处置，仅低置信度复核、按需看截图。
 
 两处共同约定：分片之间只回传进度，主会话**不阻断等待**，全部就绪后再推进。
 
@@ -96,7 +97,7 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
 - **参考文件**：`./files/templates/test_points_requirement.md`
 - **输出目录**：`./explore_output/{日期_时间}/`（由本步初始化创建）
 - **输出文件**：`./explore_output/{日期_时间}/explore_record.md` + `recorded_code.py`
-- **备注**：向主会话回传 `日期_时间` 目录名，供后续步骤指向。
+- **备注**：向主会话回传 `日期_时间` 目录名，供后续步骤指向。如页面可划分为互不跳转的独立模块且用户要求并行，可按 explore-site 技能「3.1 多 MCP 实例并行探索」拆分片（各分片绑定独立 playwright 实例，只读操作并行，写操作归主会话串行）。
 
 子会话 prompt 示例：
 ```
@@ -187,6 +188,7 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 - **输出**：重写脚本 + `fix_feedbacks.md` + `{批次目录}/fix_loop_work/{case_id}.json`
 - **迭代**：按 `--max-rounds`（默认 2）自动循环"重写→重跑"，直至通过或无可重写项。
 - **三条红线**：不改预期凑通过；只改定位/断言行；缺数据/缺会话不自动重写。
+- **分类+重写一次完成**：`build_feedbacks.py` 已对每个失败用例自动预分类（`auto_class`/`confidence`/`needs_screenshot`，见 `fix_feedbacks.md` 头部统计），子会话**不要**把分类和重写拆成两个阶段——高置信度项直接按 `auto_class` 处置，仅低置信度项复核（`needs_screenshot == false` 一律不看截图）。
 
 子会话执行示例（第 1 轮）：
 ```
@@ -195,7 +197,8 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 ```
 - 无失败用例 → 本步直接结束。
 - **并行分片分类/重写**：失败用例多（≥ 10 条）时，按 `fix_loop_work/{case_id}.json` 分组拆 2~3 个并行子会话，
-  各会话只分类/重写自己那组（不同子会话改不同 `.py`）；**先文本后截图**（先用 error 文本+疑似行分类，error 无法判定才看截图）。
+  各会话对自己那组**一次完成"分类+重写"**（不同子会话改不同 `.py`，无写冲突）；
+  分组参照 `fix_feedbacks.md` 头部预分类统计（同类归同一分片）；仅低置信度且 `needs_screenshot == true` 才看截图。
 - 对被重写的用例用 run_collect **一次**定向重跑：
   `--filter {case_id1},{case_id2},... --keep-results --merge-results`（`--filter` 支持逗号分隔多前缀，避免多次启动进程；`--merge-results` 保证重跑后报告仍含全部用例）。
 
