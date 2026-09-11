@@ -40,13 +40,24 @@ from datetime import datetime
 # ① 配置与登录（与生成脚本的 login() 保持一致）
 # =============================================================================
 
+_NETWORK_IDLE_TIMEOUT_MS = 3000
+
+
+def quick_goto(page, url: str, timeout_ms: int = 20000) -> None:
+    """导航后快速等待：domcontentloaded 优先，networkidle 仅限时兜底。
+    避免 SPA 长轮询/懒加载页面在 networkidle 上无限等待拖慢采集。"""
+    page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+    try:
+        page.wait_for_load_state("networkidle", timeout=_NETWORK_IDLE_TIMEOUT_MS)
+    except Exception:
+        page.wait_for_timeout(600)
+
+
 def login(page, base_url, login_url_path, username, password, sms_code, auth_state) -> None:
     """复用 storage_state 则跳过登录；否则填账号密码登录。"""
     if auth_state:
-        page.wait_for_load_state("networkidle")
-        return
-    page.goto(base_url + login_url_path)
-    page.wait_for_load_state("networkidle")
+        return  # 复用 storage_state；登录态有效性后续由 verify_auth 探测
+    quick_goto(page, base_url + login_url_path)
     if username:
         page.fill("input[placeholder*='账号']", username)
     if password:
@@ -54,7 +65,6 @@ def login(page, base_url, login_url_path, username, password, sms_code, auth_sta
     if sms_code:
         page.fill("input[placeholder*='验证码']", sms_code)
     page.click("button:has-text('登录')")
-    page.wait_for_load_state("networkidle")
     page.wait_for_timeout(1000)
 
 
@@ -266,8 +276,7 @@ def verify_auth(page, base_url: str, first_route: str, login_url_path: str,
     networkidle 超时不阻断（慢网络下按当前 DOM 继续判定）。
     """
     try:
-        page.goto(base_url + first_route, timeout=timeout_ms)
-        page.wait_for_load_state("networkidle", timeout=timeout_ms)
+        quick_goto(page, base_url + first_route, timeout_ms)
     except Exception:
         pass
     if looks_like_login(page, login_url_path):
@@ -337,8 +346,7 @@ def parse_routes(route_path: str, route_paths: str) -> list[str]:
 def collect_route(page, base_url: str, route_path: str,
                   no_dialog: bool, timeout_ms: int, no_lint: bool = False) -> dict:
     """在已登录的 page 上采集单个 route，返回 testids.json payload（不含浏览器生命周期）。"""
-    page.goto(base_url + route_path)
-    page.wait_for_load_state("networkidle")
+    quick_goto(page, base_url + route_path, timeout_ms)
 
     main_elements = dump_testids(page, "main")
 

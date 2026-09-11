@@ -57,7 +57,7 @@ triggers:
 
 ### 并行分片（提速）
 
-**步骤3（生成自包含脚本）**：用例多（≥20 条）时，把用例**按页面/模块划分**，拆 2~3 个并行
+**步骤3（生成自包含脚本）**：用例较多（≥8 条）时，把用例**按页面/模块划分**，拆 2~3 个并行
 general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_id}/` 片段。约束：
 - **testid 批量采集先做一次**（一次登录遍历全部待采页面，浏览器只启动一次；脚本自动跳过缓存命中页，加 `--refresh` 强制重采），完成后各分片读缓存，不再各自采
 - **同页面的 page 片段仅由一个分片写**（按页面划分天然无冲突）
@@ -72,7 +72,7 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
 ### 渐进式读取约定（各子会话必须遵守）
 
 - **探索记录 / 用例md / 反馈文件**等长文件：子会话用 `Read` 的 `offset + limit` 或按章节/按批次渐进读取，**不要**一次 `Read` 整文件载入自身上下文。
-- **步骤3 用例多（≥20 条）时并行分片**：按页面/模块拆 2~3 个并行子会话写 `_specs/cases/`，各分片回传 `已完成 n/t`（**仅回传进度，主会话不阻断等待**），全部就绪后统一渲染。
+- **步骤3 用例较多（≥8 条）时并行分片**：按页面/模块拆 2~3 个并行子会话写 `_specs/cases/`，page 片段可先统一产出、steps 片段完全并行；各分片回传 `已完成 n/t`（**仅回传进度，主会话不阻断等待**），全部就绪后统一渲染。
 - 单点技能自身已内置"分批生成/缓存优先/`--max-rounds`"等防溢出机制，工作流应**沿用**，不重复实现。
 
 ### 子会话 prompt 模板
@@ -141,7 +141,7 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
 - **必填运行前置**：`BASE_URL`（向用户索要）+ 登录态 `auth_state.json`
 - **登录态统一约定**：`auth_state.json` 一律落在 `generated_scripts/{需求名}_{日期}/.auth/auth_state.json`（与生成脚本 `AUTH_STATE` 默认值 `.auth/auth_state.json` 一致，脚本独立运行即读此路径）。来源：优先复用已有登录态（项目根 `.auth/auth_state.json` 或既有批次目录），否则导出当前已登录会话后写入批次 `.auth/` 目录；仍无则走 `login()` 填账号兜底。
 - **输出目录**：`./generated_scripts/{需求名}_{日期}/`（每用例一个 `.py` + `testids.json` + README）
-- **渐进式**：用例 ≥ 20 条时**并行分片生成**（见「核心规则」节）；testid 采集按该技能**批量模式**一次登录遍历全部页面（缓存优先，命中跳过重采）。
+- **渐进式**：用例 ≥ 8 条时**并行分片生成**（见「核心规则」节）；testid 采集按该技能**批量模式**一次登录遍历全部页面（缓存优先，命中跳过重采）。
 - **自检**：步骤3 子会话末尾用该技能自带 `selfcheck.py` 做 6 项检查，error 级必须修复后交付。
 - **命名 lint**：testid 批量采集默认按 `files/templates/testid_naming_convention.md` 做命名校验（结果在 testids.json 的 `lint` 字段）；`warn_count > 0` 时在回传统计中列出问题项，供反馈前端修复，不阻断流水线。
 
@@ -155,7 +155,7 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
        --base-url {BASE_URL} --auth-state {批次目录}/.auth/auth_state.json \
        --headless --route-paths {routes.txt} --out-dir generated_scripts/.testid_cache
    （命中缓存页面自动跳过重采；仅个别页面补采时可用单页模式 --route-path + --out）
-5. **并行分片生成**：按页面/模块把用例拆给多个并行子会话，各会话只写自己负责的 `_specs/cases/{case_id}/`（spec.json + steps.py）；**同页面的 page 片段仅一人写**。全部就绪后统一调
+5. **并行分片生成**：按页面/模块把用例拆给多个并行子会话，各会话只写自己负责的 `_specs/cases/{case_id}/`（spec.json + steps.py）；**同页面的 page 片段仅一人写**（可先由主会话统一产出全部 page 片段）。全部就绪后统一调
    python3 .claude/skills/test-script-generate-standalone/gen_script.py \
        --spec-dir "generated_scripts/{需求名}_{日期}/_specs" \
        --out "generated_scripts/{需求名}_{日期}"
@@ -228,7 +228,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 - [ ] 五个步骤已按子会话 prompt 模板分别配置，各含 技能文件/输入/参考/输出
 - [ ] 步骤2 自动指向步骤1 的 `{日期_时间}` 目录，不让用户重选
 - [ ] 步骤3 需向用户索要 BASE_URL；登录态按「登录态统一约定」落位到 `{批次目录}/.auth/auth_state.json`
-- [ ] 步骤3 testid 采集用**批量模式**（`--route-paths` + `--out-dir`，一次登录遍历全部未命中页面）；用例 ≥ 20 条时按页面/模块**并行分片**，同页面 page 片段仅一人写，仅回传进度不阻断
+- [ ] 步骤3 testid 采集用**批量模式**（`--route-paths` + `--out-dir`，一次登录遍历全部未命中页面）；用例 ≥ 8 条时按页面/模块**并行分片**，page 片段先统一产出、steps 片段并行，仅回传进度不阻断
 - [ ] 步骤4 明确带 `--keep-results --merge-results` 保留 results.json 并保证报告完整
 - [ ] 步骤5 按 `--max-rounds` 自动迭代，遵守三条红线；失败用例 ≥ 10 条时并行分片分类/重写，重跑用 `--filter` 逗号多值一次完成
 - [ ] 渐进式读取约定写入各步与流程控制（长文件分批/分块、步骤3 并行分片）

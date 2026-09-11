@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 # =============================================================================
 # ① 配置区 CONFIG —— 运行前在此填入目标系统信息与登录凭据（TODO 须补齐）
 # =============================================================================
-BASE_URL = "http://10.10.40.37:8089"   # 目标系统主机根地址（不带 /sha-admin 后缀），脚本内以 BASE_URL + "/sha-admin/..." 拼接
+BASE_URL = "http://192.168.200.67:8080"   # 目标系统基础地址（可按运行环境修改），脚本内以 BASE_URL + ROUTE_PATH 拼接
 LOGIN_URL_PATH = ""           # TODO: 登录页路由，如 /business/#/login（AUTH_STATE 为空时走 login()）
 USERNAME = ""                 # TODO: 登录账号
 PASSWORD = ""                 # TODO: 登录密码

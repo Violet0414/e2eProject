@@ -192,16 +192,35 @@ def check_locators_live(script_dir: Path, base_url: str, route_path: str,
                 storage_state=str(auth_path) if auth_path and auth_path.exists() else None,
                 viewport={"width": 1920, "height": 1080})
             page = ctx.new_page()
-            page.goto(base_url + route_path)
-            page.wait_for_load_state("networkidle")
-            page.wait_for_timeout(1500)
+            page.goto(base_url + route_path, wait_until="domcontentloaded")
+            try:
+                page.wait_for_load_state("networkidle", timeout=3000)
+            except Exception:
+                pass
+            page.wait_for_timeout(800)  # 等 SPA 动态组件挂载（比原 1500ms 短）
 
             hit = 0
             miss = 0
-            for label, sel in locators.items():
+            sel_items = [(label, sel) for label, sel in locators.items()]
+            # 一次性批量求值所有 selector 命中数，避免逐个 locator.count() 的往返开销
+            counts = None
+            if sel_items:
                 try:
-                    count = page.locator(sel).count()
-                    if count == 0:
+                    counts = page.evaluate(
+                        """(sels) => sels.map(s => {
+                            try { return document.querySelectorAll(s).length; } catch (e) { return -1; }
+                        })""",
+                        [sel for _, sel in sel_items],
+                    )
+                except Exception:
+                    counts = None
+
+            for i, (label, sel) in enumerate(sel_items):
+                try:
+                    cnt = counts[i] if counts is not None else None
+                    if cnt in (None, -1):  # 批量求值不可用或 selector 不兼容（如 :has-text）
+                        cnt = page.locator(sel).count()
+                    if cnt == 0:
                         issues.append(("error", "定位器预检",
                                        f"定位器零命中: {label} -> {sel}"))
                         miss += 1
