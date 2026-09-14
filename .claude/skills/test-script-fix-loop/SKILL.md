@@ -92,7 +92,8 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 ### 第四步：处置细则（承接第三步，同一次子会话内执行）
 
 **A. 可重写（locator / assertion_method）**——用生成器重写：
-1. 只定位失败用例的脚本 `{case_id}.py` 与失败行；
+1. 只定位失败用例的脚本与失败行；脚本按模块子目录存放（`{批次}/{模块名}/{case_id}.py`），
+   `build_feedbacks.py` 生成的反馈包已给出脚本绝对路径（`script_abs`），直接使用即可；
 2. 定位类：对照 `testids.json` 反查真实 `data-testid`（`index` 的 `by_label/by_placeholder/by_button_text`），优先换真实 testid；未命中则校正 `tid()` 的语义 fallback；保证 `tid(page, "<testid>", "<fallback>")` 结构不被打破。
 3. 断言方式类：`input`/`select`/`date` 字段回显断言改用 `input_value()`，保留 `check()`/`expect_toast()` 既有约定；
 4. **保持该脚本五层结构**，不引入新基类/新依赖，不动其它已通过用例。

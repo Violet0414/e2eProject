@@ -37,7 +37,7 @@ triggers:
 |------|------|----------|----------|
 | 1 | explore-site | `explore_output/{日期_时间}/explore_record.md` + `recorded_code.py`（后者为探索附产物，闭环后续步骤不消费） | 步骤2 输入 |
 | 2 | generate-testcases-from-explore | `explore_output/{日期_时间}/{时间戳}_测试用例.md` + `.xlsx` | 步骤3 输入 |
-| 3 | test-script-generate-standalone | `generated_scripts/{需求}_{日期}/`（每用例一个 `.py` + `testids.json`） | 步骤4 输入 |
+| 3 | test-script-generate-standalone | `generated_scripts/{需求}_{日期}/`（脚本按**模块名原文**分子目录存放：`{模块名}/{case_id}.py`，另有 `testids.json`） | 步骤4 输入 |
 | 4 | test-script-run-collect | `测试报告.md` + `screenshots/`（用 `--keep-results` 保留 results.json） | 步骤5 输入 |
 | 5 | test-script-fix-loop | 重写脚本 + `fix_feedbacks.md` + 最终 `测试报告.md` | 交付 |
 
@@ -65,6 +65,7 @@ triggers:
 general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_id}/` 片段。约束：
 - **testid 批量采集先做一次**（一次登录遍历全部待采页面，浏览器只启动一次；脚本自动跳过缓存命中页，加 `--refresh` 强制重采），完成后各分片读缓存，不再各自采
 - **同页面的 page 片段仅由一个分片写**（按页面划分天然无冲突）
+- 按模块划分分片时与脚本输出目录天然对应（spec.json 带 `module` = 用例「所属模块」原文，脚本渲染到 `{批次}/{模块名}/` 子目录，互不覆盖）
 - 各分片全部就绪后，统一跑一次 `gen_script.py` 渲染 + `selfcheck.py` 自检
 
 **步骤5（失败反馈重写）**：失败用例多（≥10 条）时，按 `fix_loop_work/{case_id}.json` 分组拆 2~3 个并行子会话，
@@ -239,6 +240,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 - [ ] 步骤3 需向用户索要 BASE_URL；登录态按「登录态统一约定」落位到 `{批次目录}/.auth/auth_state.json`
 - [ ] 直接入口（用户提供用例跳过步骤1/2）时：已先确认 BASE_URL；route_path 为空的用例已按模块归组向用户确认（不提供则置空），确认完成前未启动 testid 采集
 - [ ] 步骤3 testid 采集用**批量模式**（`--route-paths` + `--out-dir`，一次登录遍历全部未命中页面）；用例 ≥ 8 条时按页面/模块**并行分片**，page 片段先统一产出、steps 片段并行，仅回传进度不阻断
+- [ ] 步骤3 生成脚本按**模块名原文子目录**存放（spec.json 带 `module`，渲染到 `{批次}/{模块名}/{case_id}.py`）；步骤4/5 工具递归发现脚本，报告/截图/results.json 仍在批次根目录
 - [ ] 步骤4 明确带 `--keep-results --merge-results` 保留 results.json 并保证报告完整
 - [ ] 步骤5 按 `--max-rounds` 自动迭代，遵守三条红线；失败用例 ≥ 10 条时并行分片分类/重写，重跑用 `--filter` 逗号多值一次完成
 - [ ] 渐进式读取约定写入各步与流程控制（长文件分批/分块、步骤3 并行分片）

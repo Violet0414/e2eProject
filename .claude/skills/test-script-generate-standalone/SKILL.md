@@ -51,13 +51,18 @@ triggers:
 
 ```
 e2eProject/generated_scripts/{关联需求名}_{YYYY-MM-DD}/
-  ├── TC-XXX-001.py        # 每个用例一个自包含脚本（由 gen_script.py 渲染产出）
-  ├── TC-XXX-002.py
+  ├── {模块名}/              # 按用例「所属模块」原文分目录存放（目录名 = 模块名原文）
+  │   ├── TC-XXX-001.py      # 每个用例一个自包含脚本（由 gen_script.py 渲染产出）
+  │   └── TC-XXX-002.py
   ├── _specs/              # 差异片段（LLM 产出，渲染输入，供审计与重渲染）
   │   ├── pages/{PageName}.json + {PageName}_page.py
   │   └── cases/{case_id}/spec.json + steps.py
   └── README.md            # 使用说明（如何填配置、如何运行）
 ```
+
+> **模块分目录约定**：spec.json 携带用例「所属模块」原文（`module` 字段）时，脚本输出到
+> `{out}/{module}/{case_id}.py`（module 含 `/` 时按层级建子目录）；`module` 缺省/为空时
+> 平铺到批次根目录（兼容旧片段）。测试报告.md / results.json / screenshots/ 始终在批次根目录。
 
 运行 Skill 2（`test-script-run-collect`）时阅读的也正是这个 `generated_scripts/` 目录，用其 `run_collect.py` 执行：
 ```
@@ -82,6 +87,7 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 2. 定位表格表头行，确认列顺序（按关键词配对，不硬编码序号）
 3. 逐行解析每个用例，提取：
    - `case_id`（用例编号，如 TC-ZHONGDIAN-002）
+   - `module`（所属模块，取表格「所属模块」列原文，决定脚本存放子目录）
    - `case_name`（用例名称）
    - `route_path`（页面路由，如 /business/#/report/emphasis）
    - `priority`（优先级）
@@ -139,7 +145,7 @@ _specs/
   │         # ---- methods ----    → class 内业务动作方法（渲染时缩进至 4 空格）
   └── cases/
       └── {case_id}/
-          ├── spec.json          # {"case_id","case_name","route_path","page_name"}
+          ├── spec.json          # {"case_id","case_name","route_path","page_name"[,"module"]}
           └── steps.py           # run_case 内步骤代码，顶格写（渲染时缩进至 4 空格）
 ```
 
@@ -165,6 +171,7 @@ python3 .claude/skills/test-script-generate-standalone/gen_script.py \
    `cases/{case_id}/` 并重跑渲染命令
 7. **并行分片（提速）**：用例较多（>8 条）时拆多个并发生成会话——**按页面/模块划分**用例组，各会话只写自己负责的
    `cases/{case_id}/` 片段（含 `spec.json` + `steps.py`）；**同页面的 page 片段仅由一人写**，避免重复冲突。
+   按模块划分时与输出目录天然对应（一个分片 = 一个模块子目录，脚本互不覆盖）。
    page 片段数量通常远少于用例数：可**先由主会话（或单一分片）统一产出全部 page 片段**，其余分片专注完全独立的
    steps 片段，最大化并行度。全部片段就绪后统一跑一次 `gen_script.py` 渲染命令即可（渲染是纯本地操作，与片段生成解耦，可最后一次性执行）
 

@@ -85,6 +85,23 @@ def find_result_file(script_dir: Path, name: str) -> Path:
     return None
 
 
+# 递归索引脚本时排除的非用例目录（片段/缓存/登录态/产物目录等）
+_EXCLUDED_DIRS = {"_specs", "_pages", "screenshots", ".auth", ".testid_cache", "fix_loop_work", "__pycache__"}
+
+
+def build_script_index(script_dir: Path) -> dict:
+    """递归索引批次目录下全部脚本：{文件名去扩展名: 路径}。
+    兼容按模块子目录存放（{批次}/{模块名}/{case_id}.py）与旧的平铺结构。"""
+    index = {}
+    for p in script_dir.rglob("*.py"):
+        rel = p.relative_to(script_dir)
+        if any(part in _EXCLUDED_DIRS or part.startswith(".") or part.startswith("_")
+               for part in rel.parts[:-1]):
+            continue
+        index[p.stem] = p
+    return index
+
+
 def candidate_lines(script_text: str) -> list:
     """抽出脚本中与定位/断言相关的行（带行号），作为"疑似需修改点"。"""
     hits = []
@@ -167,10 +184,11 @@ def main() -> int:
     out_dir.mkdir(exist_ok=True)
 
     # 先做一轮预分类统计，写进总览头部，供子会话按类快速处置/分片
+    script_index = build_script_index(script_dir)
     class_stats = {}
     for e in failed:
         cid = e.get("id") or e.get("name") or "unknown"
-        script = script_dir / f"{cid}.py"
+        script = script_index.get(cid) or script_dir / f"{cid}.py"
         lines = candidate_lines(script.read_text(encoding="utf-8")) if script.exists() else []
         cls, _ = auto_classify(e.get("error", ""), lines)
         key = cls or "未分类"
@@ -197,7 +215,7 @@ def main() -> int:
 
     for e in sorted(failed, key=lambda x: x.get("id", "")):
         cid = e.get("id") or e.get("name") or "unknown"
-        script = script_dir / f"{cid}.py"
+        script = script_index.get(cid) or script_dir / f"{cid}.py"
         lines = candidate_lines(script.read_text(encoding="utf-8")) if script.exists() else []
         cls, conf = auto_classify(e.get("error", ""), lines)
         fb = {

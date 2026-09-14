@@ -83,6 +83,8 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 
 `run_collect.py` 职责（无需手工 for 循环）：
 - 逐个 `python3 文件.py` 执行，捕获 `TEST_RESULT_JSON: {...}` 协议行作为权威结果
+- **递归发现脚本**：脚本支持按模块子目录存放（`{批次}/{模块名}/{case_id}.py`），也兼容平铺结构；
+  自动排除 `_specs/`、`screenshots/`、`.auth/` 等非用例目录
 - 崩溃/超时/无协议行 → 兜底 `failed`（"脚本异常退出，未输出结果协议行"）
 - **偶发时序失败**：`failed` 用例按 `--max-retry` 重跑一次，二次通过则报告标"通过(重跑)"
 - **失败截图补拍**：对失败用例，用 `auth_state.json` 打开**该用例自身的 `ROUTE_PATH`** 补拍
@@ -97,7 +99,7 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 运行时间 / 脚本目录 / 统计（总数/通过/失败/通过率）
 
 ## 执行结果
-| 用例ID | 状态 | 名称 | 失败原因 | 截图 |
+| 用例ID | 模块 | 状态 | 名称 | 失败原因 | 截图 |
 ## 失败用例详情
 | 用例ID（错误堆栈 + 截图路径）
 ```

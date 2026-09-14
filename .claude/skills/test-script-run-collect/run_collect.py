@@ -10,6 +10,9 @@
       [--headless] [--filter TC-PERSON,TC-BURIAL] [--max-retry 1] [--keep-results] [--no-live]
   （--filter 支持逗号分隔多前缀，一次跑多个用例组）
 
+脚本支持按模块子目录存放（如 {批次}/{模块名}/{case_id}.py），本脚本递归发现；
+测试报告.md / results.json / screenshots/ 仍集中生成在批次根目录。
+
 退出码：0 = 完成（可能含失败用例）；1 = 参数错误 / 目录无效。
 """
 import argparse
@@ -71,10 +74,28 @@ def resolve_script_dir(path: str) -> Path:
 
 
 # =============================================================================
-# ② 脚本元数据提取（route / base_url / case_id）
+# ② 脚本发现（递归，按模块子目录）与元数据提取（route / base_url / case_id）
 # =============================================================================
 _ASSIGN_RE = re.compile(r'^\s*ROUTE_PATH\s*=\s*["\']([^"\']+)["\']', re.M)
 _BASEURL_RE = re.compile(r'^\s*BASE_URL\s*=\s*["\']([^"\']+)["\']', re.M)
+
+# 递归发现脚本时排除的非用例目录（片段/缓存/登录态/产物目录等）
+_EXCLUDED_DIRS = {"_specs", "_pages", "screenshots", ".auth", ".testid_cache", "fix_loop_work", "__pycache__"}
+
+
+def iter_scripts(script_dir: Path) -> list:
+    """递归发现批次目录下全部自包含测试脚本，返回相对 posix 路径字符串列表。
+    兼容旧的平铺结构；排除非用例目录与隐藏目录、下划线开头文件。"""
+    out = []
+    for f in sorted(script_dir.rglob("*.py")):
+        if f.name.startswith("_"):
+            continue
+        rel = f.relative_to(script_dir)
+        if any(part in _EXCLUDED_DIRS or part.startswith(".") or part.startswith("_")
+               for part in rel.parts[:-1]):
+            continue
+        out.append(rel.as_posix())
+    return out
 
 
 def extract_script_meta(py_path: Path) -> dict:
@@ -84,7 +105,9 @@ def extract_script_meta(py_path: Path) -> dict:
     route = m.group(1) if m else ""
     m = _BASEURL_RE.search(text)
     base = m.group(1) if m else ""
-    return {"id": py_path.stem, "route": route, "base_url": base}
+    parent = py_path.parent.as_posix()
+    return {"id": py_path.stem, "route": route, "base_url": base,
+            "module": parent if parent not in (".", "") else ""}
 
 
 # =============================================================================
@@ -133,6 +156,7 @@ def collect(full_meta: dict, o) -> dict:
     return {"id": cid, "name": o.get("name") or cid, "status": o.get("status", "failed"),
             "error": o.get("error", ""), "screenshot": o.get("screenshot", ""),
             "timestamp": o.get("timestamp", datetime.now().isoformat()),
+            "module": full_meta.get("module", ""),
             "route": full_meta.get("route", ""), "base_url": full_meta.get("base_url", "")}
 
 
@@ -281,7 +305,7 @@ def main() -> int:
     os.chdir(script_dir)
     os.makedirs("screenshots", exist_ok=True)
 
-    all_py = sorted(f for f in os.listdir(".") if f.endswith(".py") and not f.startswith("_"))
+    all_py = iter_scripts(Path("."))
     if args.filter:
         prefixes = [p.strip() for p in args.filter.split(",") if p.strip()]
         if not prefixes:
@@ -336,7 +360,7 @@ def main() -> int:
         with open(out_path, "w", encoding="utf-8") as f:
             for r in ordered:
                 # 只保留核心字段，去掉内部用的 route/base_url/retried_passed 等
-                clean = {k: r.get(k, "") for k in ("id", "name", "status", "error", "screenshot", "timestamp")}
+                clean = {k: r.get(k, "") for k in ("id", "name", "status", "error", "screenshot", "timestamp", "module")}
                 f.write(json.dumps(clean, ensure_ascii=False) + "\n")
         print(f"[merge] 已回写去重后的 results.json: {out_path}（{len(ordered)} 条）")
 
@@ -485,8 +509,8 @@ def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> 
 
     report.append("## 执行结果")
     report.append("")
-    report.append("| 用例ID | 状态 | 名称 | 失败原因 | 截图 |")
-    report.append("|--------|------|------|----------|------|")
+    report.append("| 用例ID | 模块 | 状态 | 名称 | 失败原因 | 截图 |")
+    report.append("|--------|------|------|------|----------|------|")
     for r in ordered:
         cid = r["id"]
         status = r.get("status", "failed")
@@ -494,6 +518,7 @@ def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> 
             status_cn = "通过(重跑)" if r.get("retried_passed") else "通过"
         else:
             status_cn = "失败"
+        module = r.get("module", "") or "-"
         name = r.get("name") or cid
         err = r.get("error", "") or ""
         err_short = ""
@@ -503,7 +528,7 @@ def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> 
             err_short = err_short.replace("|", "\\|")[:120]
         shot = r.get("screenshot", "") or ""
         shot_md = f"[{os.path.basename(shot)}]({shot})" if shot else ""
-        report.append(f"| {cid} | {status_cn} | {name} | {err_short} | {shot_md} |")
+        report.append(f"| {cid} | {module} | {status_cn} | {name} | {err_short} | {shot_md} |")
     report.append("")
 
     if failed_cases:
@@ -533,14 +558,13 @@ def _cleanup(script_dir: Path) -> None:
         if p.exists():
             p.unlink()
             print(f"  🧹 清理 {name}")
-    for pat in ("*.log",):
-        for p in script_dir.glob(pat):
-            p.unlink()
-            print(f"  🧹 清理 {p.name}")
-    pycache = script_dir / "__pycache__"
-    if pycache.is_dir():
-        shutil.rmtree(pycache)
-        print("  🧹 清理 __pycache__")
+    for p in script_dir.rglob("*.log"):
+        p.unlink()
+        print(f"  🧹 清理 {p.relative_to(script_dir)}")
+    for pycache in script_dir.rglob("__pycache__"):
+        if pycache.is_dir():
+            shutil.rmtree(pycache)
+            print(f"  🧹 清理 {pycache.relative_to(script_dir)}")
 
 
 if __name__ == "__main__":

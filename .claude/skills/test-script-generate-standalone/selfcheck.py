@@ -30,15 +30,35 @@ import traceback
 from pathlib import Path
 
 # =============================================================================
+# 脚本发现（递归，按模块子目录）
+# =============================================================================
+# 递归发现脚本时排除的非用例目录（片段/缓存/登录态/产物目录等）
+_EXCLUDED_DIRS = {"_specs", "_pages", "screenshots", ".auth", ".testid_cache", "fix_loop_work", "__pycache__"}
+
+
+def iter_scripts(script_dir: Path) -> list:
+    """递归发现批次目录下全部自包含测试脚本（兼容平铺结构）。
+    排除非用例目录、隐藏目录与下划线开头文件。"""
+    out = []
+    for f in sorted(script_dir.rglob("*.py")):
+        if f.name.startswith("_"):
+            continue
+        rel = f.relative_to(script_dir)
+        if any(part in _EXCLUDED_DIRS or part.startswith(".") or part.startswith("_")
+               for part in rel.parts[:-1]):
+            continue
+        out.append(f)
+    return out
+
+
+# =============================================================================
 # 检查项 1：语法检查
 # =============================================================================
 def check_syntax(script_dir: Path) -> list:
     """逐文件 py_compile，返回错误列表。"""
     issues = []
     import py_compile
-    for f in sorted(script_dir.glob("*.py")):
-        if f.name.startswith("_"):
-            continue
+    for f in iter_scripts(script_dir):
         try:
             py_compile.compile(str(f), doraise=True)
         except py_compile.PyCompileError as e:
@@ -53,9 +73,7 @@ def check_viewport_dict(script_dir: Path) -> list:
     """检测 viewport={{...}} 这类 .format() 转义后残留的双层大括号。"""
     issues = []
     pattern = re.compile(r"viewport\s*=\s*\{\{")
-    for f in sorted(script_dir.glob("*.py")):
-        if f.name.startswith("_"):
-            continue
+    for f in iter_scripts(script_dir):
         text = f.read_text(encoding="utf-8")
         if pattern.search(text):
             issues.append(("error", f.name, "viewport 使用了双层大括号 {{...}}，应为单层 {...}"))
@@ -83,9 +101,7 @@ REQUIRED_PATTERNS = {
 def check_template_completeness(script_dir: Path) -> list:
     """检查每个脚本是否具备完整的五层结构和关键函数。"""
     issues = []
-    for f in sorted(script_dir.glob("*.py")):
-        if f.name.startswith("_"):
-            continue
+    for f in iter_scripts(script_dir):
         text = f.read_text(encoding="utf-8")
         for name, pat in REQUIRED_PATTERNS.items():
             if not re.search(pat, text):
@@ -102,9 +118,7 @@ def extract_locators_for_precheck(script_dir: Path) -> dict:
     """
     locators = {}  # key=标签(如 person-name), value=selector 字符串
 
-    for f in sorted(script_dir.glob("*.py")):
-        if f.name.startswith("_"):
-            continue
+    for f in iter_scripts(script_dir):
         text = f.read_text(encoding="utf-8")
 
         # 去掉辅助函数 tid / rich_text 的定义体（避免抽到 f-string 里的 {testid} 模板变量）
@@ -336,9 +350,7 @@ def check_assertion_style(script_dir: Path, testids_path: str = None) -> list:
         except Exception:
             pass
 
-    for f in sorted(script_dir.glob("*.py")):
-        if f.name.startswith("_"):
-            continue
+    for f in iter_scripts(script_dir):
         text = f.read_text(encoding="utf-8")
         # 找 check(page, "desc", locator, expect="...") 形式
         for m in re.finditer(

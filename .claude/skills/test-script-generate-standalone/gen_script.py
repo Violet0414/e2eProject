@@ -15,10 +15,13 @@
                              #   # ---- methods ----   → class 内动作方法（渲染缩进 4 空格）
     cases/
       {case_id}/
-        spec.json            # {"case_id","case_name","route_path","page_name"}
+        spec.json            # {"case_id","case_name","route_path","page_name"[,"module"]}
         steps.py             # run_case 内步骤代码，顶格写（渲染缩进 4 空格）
 
 约定：片段代码一律顶格写，缩进由本脚本统一加；同页面多用例共享一份 page 片段。
+spec.json 可选字段 module（用例「所属模块」原文）：有值时脚本输出到
+  {out}/{module}/{case_id}.py（module 含 "/" 时按层级建子目录）；
+  缺省/为空时保持平铺 {out}/{case_id}.py（向后兼容旧片段）。
 
 用法：
   python3 gen_script.py --spec-dir <_specs目录> --out <输出目录> [--only TC-XXX-001 ...]
@@ -140,6 +143,20 @@ def render_case(template: str, spec: dict, page_meta: dict, page_frags: dict,
     return out
 
 
+_FORBIDDEN_DIR_CHARS = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
+
+
+def module_subdir(module: str) -> Path:
+    """把用例「所属模块」原文转为安全子目录路径（支持 "/" 分层，保留中文）。
+    非法字符替换为下划线；空串/全空白返回空 Path（平铺输出）。"""
+    parts = []
+    for seg in (module or "").replace("\\", "/").split("/"):
+        seg = _FORBIDDEN_DIR_CHARS.sub("_", seg).strip().strip(".")
+        if seg:
+            parts.append(seg)
+    return Path(*parts)
+
+
 def load_spec(case_dir: Path) -> dict:
     """读取并校验单个用例 spec.json。"""
     spec_path = case_dir / "spec.json"
@@ -205,6 +222,7 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     page_cache = {}   # page_name -> (meta, frags)
     pages_used = set()
+    module_counts = {}   # 模块子目录 -> 已渲染脚本数
     rendered, failures = [], []
 
     for case_dir in case_dirs:
@@ -238,10 +256,14 @@ def main() -> int:
 
             script = render_case(template, spec, page_meta, frags, steps_text,
                                  base_url=args.base_url)
-            out_file = out_dir / f"{cid}.py"
+            sub = module_subdir(spec.get("module", ""))
+            out_file = out_dir / sub / f"{cid}.py"
+            out_file.parent.mkdir(parents=True, exist_ok=True)
             out_file.write_text(script, encoding="utf-8")
             py_compile.compile(str(out_file), doraise=True)
-            rendered.append(cid)
+            rendered.append((sub.as_posix() if str(sub) else "", cid))
+            module_counts[str(sub) if str(sub) else "(平铺)"] = \
+                module_counts.get(str(sub) if str(sub) else "(平铺)", 0) + 1
         except Exception as e:
             failures.append((cid, str(e)))
 
@@ -249,6 +271,10 @@ def main() -> int:
     print(f"渲染完成：用例 {len(rendered)}/{len(case_dirs)}，涉及页面 {len(pages_used)} 个"
           f"（{', '.join(sorted(pages_used)) or '无'}）")
     print(f"输出目录: {out_dir}")
+    if module_counts:
+        print("按模块分布:")
+        for mod in sorted(module_counts):
+            print(f"  {mod}: {module_counts[mod]} 条")
     if failures:
         print("\n以下用例渲染失败：")
         for cid, msg in failures:
