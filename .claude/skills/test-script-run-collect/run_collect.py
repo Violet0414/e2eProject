@@ -371,10 +371,17 @@ def _shot_failed(script_dir: Path, failed_cases: list) -> None:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             ctx = browser.new_context(storage_state=storage_state)
-            page = ctx.new_page()
-            # 恢复 sessionStorage（Playwright storage_state 不包含）
+            # 恢复 sessionStorage（Playwright storage_state 不包含）：
+            # 用 init script 在 context 内每个文档加载前注入，避免 SPA 未登录先跳转
+            # 登录页导致 evaluate 注入落空（补拍全是登录页的问题）
             if session_storage:
-                # 先导航到同域页面以设置 sessionStorage
+                ctx.add_init_script(
+                    "(d=>{try{for(const[k,v]of Object.entries(d))"
+                    "window.sessionStorage.setItem(k,v);}catch(e){}})(%s);"
+                    % json.dumps(session_storage, ensure_ascii=False))
+            page = ctx.new_page()
+            if session_storage:
+                # init script 需要一次同域导航才会落到正确 origin
                 first_base = ""
                 for r in failed_cases:
                     if r.get("base_url"):
@@ -382,11 +389,6 @@ def _shot_failed(script_dir: Path, failed_cases: list) -> None:
                         break
                 if first_base:
                     page.goto(first_base, wait_until="domcontentloaded")
-                    page.evaluate("""data => {
-                        for (const [k, v] of Object.entries(data)) {
-                            sessionStorage.setItem(k, v);
-                        }
-                    }""", session_storage)
             for r in failed_cases:
                 cid = r["id"]
                 shot_path = f"screenshots/{cid}_failed_cli.png"

@@ -185,12 +185,34 @@ def check_locators_live(script_dir: Path, base_url: str, route_path: str,
     except ImportError:
         return [("warn", "selfcheck", "定位器预检跳过：未安装 playwright")]
 
+    storage_state_path = None
+    session_storage = None
+    tmp_state_path = None
+    if auth_path and auth_path.exists():
+        # Playwright 原生 storage_state 只认 cookies + origins，扩展字段需剥离
+        with open(auth_path, "r", encoding="utf-8") as f:
+            auth_data = json.load(f)
+        session_storage = auth_data.get("sessionStorage")
+        import tempfile
+        _tmp = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8")
+        json.dump({"cookies": auth_data.get("cookies", []),
+                   "origins": auth_data.get("origins", [])}, _tmp)
+        _tmp.close()
+        tmp_state_path = storage_state_path = _tmp.name
+
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             ctx = browser.new_context(
-                storage_state=str(auth_path) if auth_path and auth_path.exists() else None,
+                storage_state=storage_state_path,
                 viewport={"width": 1920, "height": 1080})
+            # sessionStorage 不在 Playwright storage_state 内，用 init script 注入
+            if session_storage:
+                ctx.add_init_script(
+                    "(d=>{try{for(const[k,v]of Object.entries(d))"
+                    "window.sessionStorage.setItem(k,v);}catch(e){}})(%s);"
+                    % json.dumps(session_storage, ensure_ascii=False))
             page = ctx.new_page()
             page.goto(base_url + route_path, wait_until="domcontentloaded")
             try:
@@ -237,6 +259,9 @@ def check_locators_live(script_dir: Path, base_url: str, route_path: str,
     except Exception as e:
         issues.append(("error", "定位器预检",
                        f"打开页面失败: {e}"))
+
+    if tmp_state_path and os.path.exists(tmp_state_path):
+        os.unlink(tmp_state_path)
 
     return issues
 

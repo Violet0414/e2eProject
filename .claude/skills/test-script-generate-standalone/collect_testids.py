@@ -54,8 +54,22 @@ def quick_goto(page, url: str, timeout_ms: int = 20000) -> None:
 
 
 def login(page, base_url, login_url_path, username, password, sms_code, auth_state) -> None:
-    """复用 storage_state 则跳过登录；否则填账号密码登录。"""
+    """复用 storage_state 则跳过登录；支持扩展字段 sessionStorage（Playwright 原生不含）；
+    否则填账号密码登录。"""
     if auth_state:
+        session_storage = None
+        try:
+            with open(auth_state, "r", encoding="utf-8") as f:
+                session_storage = json.load(f).get("sessionStorage")
+        except (OSError, ValueError):
+            session_storage = None
+        if session_storage:
+            # sessionStorage 不跨 tab 保留（采集会 close/new_page），用 init script
+            # 在 context 内每个新文档加载前自动注入；登录态有效性后续由 verify_auth 探测
+            page.context.add_init_script(
+                "(d=>{try{for(const[k,v]of Object.entries(d))"
+                "window.sessionStorage.setItem(k,v);}catch(e){}})(%s);"
+                % json.dumps(session_storage, ensure_ascii=False))
         return  # 复用 storage_state；登录态有效性后续由 verify_auth 探测
     quick_goto(page, base_url + login_url_path)
     if username:
@@ -424,11 +438,25 @@ def run_collection(args, routes: list[str], is_batch: bool) -> int:
                   f"（--refresh 可强制重采）")
             return 0
     failed = []
+    tmp_state_path = None
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=args.headless)
+            storage_state_path = None
+            if args.auth_state:
+                # Playwright 原生 storage_state 只认 cookies + origins，扩展字段需剥离
+                with open(args.auth_state, "r", encoding="utf-8") as f:
+                    auth_data = json.load(f)
+                pw_state = {"cookies": auth_data.get("cookies", []),
+                            "origins": auth_data.get("origins", [])}
+                import tempfile
+                _tmp = tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False, encoding="utf-8")
+                json.dump(pw_state, _tmp)
+                _tmp.close()
+                tmp_state_path = storage_state_path = _tmp.name
             context = browser.new_context(
-                storage_state=args.auth_state if args.auth_state else None,
+                storage_state=storage_state_path,
                 viewport={"width": 1920, "height": 1080})
             page = context.new_page()
             login(page, args.base_url, args.login_url_path,
@@ -464,6 +492,9 @@ def run_collection(args, routes: list[str], is_batch: bool) -> int:
                 finally:
                     page.close()
             browser.close()
+        if tmp_state_path and os.path.exists(tmp_state_path):
+            os.unlink(tmp_state_path)
+            tmp_state_path = None
 
     except SystemExit:
         raise

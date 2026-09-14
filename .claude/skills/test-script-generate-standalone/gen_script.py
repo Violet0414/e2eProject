@@ -31,8 +31,11 @@
 import argparse
 import json
 import py_compile
+import re
 import sys
 from pathlib import Path
+
+_BASEURL_RE = re.compile(r'^(\s*BASE_URL\s*=\s*)["\'][^"\']*["\']', re.M)
 
 # placeholder 插入点 → (片段段标记, 渲染基准缩进)
 SLOT_SPEC = {
@@ -91,9 +94,14 @@ def parse_page_fragments(text: str, src: str) -> dict:
 
 
 def render_case(template: str, spec: dict, page_meta: dict, page_frags: dict,
-                steps_text: str) -> str:
-    """渲染单个用例脚本：元数据 str.replace + 三个 placeholder 整行替换。"""
+                steps_text: str, base_url: str = "") -> str:
+    """渲染单个用例脚本：元数据 str.replace + 三个 placeholder 整行替换。
+    base_url 非空时覆盖模板里的 BASE_URL 默认示例值。"""
     out = template
+    if base_url:
+        out, n = _BASEURL_RE.subn(rf'\1"{base_url}"', out, count=1)
+        if n == 0:
+            raise ValueError("模板中未找到 BASE_URL 赋值行，无法注入 --base-url")
     meta = {
         "case_id": spec["case_id"],
         "case_name": spec["case_name"],
@@ -163,6 +171,8 @@ def main() -> int:
                         help="只渲染指定 case_id（重渲染/修复场景）")
     parser.add_argument("--template", default=str(Path(__file__).parent / "template.py.tpl"),
                         help="模板文件路径（默认取本脚本同目录 template.py.tpl）")
+    parser.add_argument("--base-url", default="",
+                        help="注入脚本配置区 BASE_URL（覆盖模板默认示例值）")
     args = parser.parse_args()
 
     spec_dir = Path(args.spec_dir).resolve()
@@ -226,7 +236,8 @@ def main() -> int:
             page_meta, frags = page_cache[page_name]
             pages_used.add(page_name)
 
-            script = render_case(template, spec, page_meta, frags, steps_text)
+            script = render_case(template, spec, page_meta, frags, steps_text,
+                                 base_url=args.base_url)
             out_file = out_dir / f"{cid}.py"
             out_file.write_text(script, encoding="utf-8")
             py_compile.compile(str(out_file), doraise=True)
