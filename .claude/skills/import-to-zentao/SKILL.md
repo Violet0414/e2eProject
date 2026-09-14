@@ -1,6 +1,6 @@
 ---
 name: import-to-zentao
-description: 禅道用例导入 - 将测试用例文件(测试用例.md)结构化后自动批量录入禅道，含产品匹配、字段映射、dry-run、批量创建与校验。单 token 双用途：优先复用 ~/.config/zentao/zentao.json 已存 token（无需再要密码），统一认证头 Token:，模块走 v1 modules API、用例走 zentao-cli（steps/expects/stepType 三数组同位要点）
+description: 禅道用例导入 - 将测试用例文件(测试用例.md)结构化后自动批量录入禅道，含产品/模块匹配（优先最接近的现有产品和模块、模块缺失回退上一级、挂载需用户确认）、标题加模块前缀（模块名-用例名）、字段映射、dry-run、批量创建与校验。单 token 双用途：优先复用 ~/.config/zentao/zentao.json 已存 token（无需再要密码），统一认证头 Token:，模块走 v1 modules API、用例走 zentao-cli（steps/expects/stepType 三数组同位要点）
 triggers:
   - "录入禅道"
   - "导入禅道"
@@ -88,6 +88,7 @@ python3 "<skill目录>/parse_case_md.py" "<测试用例.md路径>" /tmp/zentao_c
 
 ### 步骤3 确认 /（可选）建产品
 - 查产品：`npx zentao-cli product list --pick id,name --recPerPage 300 --format json`。
+- **产品匹配策略：优先在禅道内部找最接近的产品**——将用例文件"所属产品"与产品表做模糊/包含匹配（如"民生服务管理平台"命中现有同名或近似名产品），命中即作为首选目标产品。
 - ⚠️ 用例文件"所属产品"列**未必是用户想要的目标**，往往要改导向某个现有产品或新建——**必须与用户确认**。
 - 仅在用户明确要求新建时：
   ```
@@ -102,9 +103,9 @@ CLI **无 module 命令**（`unknown command 'module'`）；模块只能经 v1 �
    ```
    curl -sk "<baseUrl>/api.php/v1/modules?type=case&id=<产品id>" -H "Token: $TOKEN"
    ```
-   返回模块 `children` 树（`id/name/parent/grade`），`root` 字段=产品 id。用脚本按路径段**逐级匹配**用例文件的`所属模块`（如路径 `板块/模块`：先找顶层名=板块的 id，再在其 `children` 里找名=模块的 id）。匹配到即得 `moduleID`，**复用，跳过创建**。
+   返回模块 `children` 树（`id/name/parent/grade`），`root` 字段=产品 id。**模块匹配策略（逐级回退）**：按用例文件`所属模块`的路径段**逐级匹配**（如路径 `板块/模块`：先找顶层名=板块的 id，再在其 `children` 里找名=模块的 id）；**若确切名称的模块找不到，回退匹配其上一级模块**（如 `板块/子模块` 不存在则挂到 `板块`，顶层模块名不存在则做模糊/包含匹配最接近的顶层模块）。匹配到即得 `moduleID`，**复用，跳过创建**。回退命中的模块与确切命中的要在 dry-run 清单里**分别标注**（如"回退到上级"），便于用户核对。
 
-2. **确认目标模块归入哪个已验证模块**：先向用户确认"用现有模块树还是新建"（例如 AskUserQuestion）。若用户选"按用例文件所属模块匹配现有树"，直接落到匹配到的模块 id（本次 `首页`=1422）。
+2. **确认目标模块归入哪个已验证模块**：dry-run 前向用户展示"产品 + 模块挂载映射表"（每个模块名 → 命中方式[精确/回退上级/模糊] → moduleID），**询问用户挂载的产品和模块是否正确**（例如 AskUserQuestion）。若用户选"按用例文件所属模块匹配现有树"，直接落到匹配到的模块 id（本次 `首页`=1422）。
 
 3. **对确切的缺失模块才逐个创建**：
    ```
@@ -120,17 +121,17 @@ CLI **无 module 命令**（`unknown command 'module'`）；模块只能经 v1 �
 5. 若 v1 模块 API 不可用（最终降级），再问用户：**① 提供独立 API key 我建 ② 界面手动建、回填 moduleID ③ 模块留空（不传 `module` 字段）**。
 
 ### 步骤5 生成提交清单 + dry-run
-把 `cases.json` 每条用例映射为提交对象（务必含三数组，见下）：
+把 `cases.json` 每条用例映射为提交对象（务必含三数组，见下）。**title 必须加模块前缀：`<所属模块>-<用例名称>`**，例如用例名称 `[列表查询】无条件查询展示全部资产`、所属模块 `全维度资产台账` → title `全维度资产台账-[列表查询】无条件查询展示全部资产`。前缀模块名取自用例文件"所属模块"列的**最后一级**（不含上级路径）：
 ```json
 {
-  "productID": 2, "title": "用例标题", "pri": 2, "type": "feature",
+  "productID": 2, "title": "模块名-用例名称", "pri": 2, "type": "feature",
   "module": <moduleID, 可选>, "precondition": "前置+测试数据",
   "steps":   ["步骤一", "步骤二"],    # 不要写 "1. " 前缀，禅道自动显示行号
   "expects": ["对应预期一", "对应预期二"],
   "stepType": ["step", "step"]
 }
 ```
-**将全部提交清单打印给用户确认**（总数、模块分布、示例几条），批准前不得真正创建。
+**将全部提交清单打印给用户确认**（总数、模块分布、title 前缀示例、模块挂载映射表[精确/回退上级/模糊]），批准前不得真正创建。
 
 ### 步骤5.5 幂等预检（创建前先去重）
 创建前先拉目标产品的现有用例标题集合，排除已存在用例，避免误重复：
@@ -138,7 +139,7 @@ CLI **无 module 命令**（`unknown command 'module'`）；模块只能经 v1 �
 npx zentao-cli testcase list --product <id> --pick id,title --recPerPage 300 --format json \
   | python3 -c "import sys,json;print(','.join(sorted({c['title'] for c in json.load(sys.stdin).get('data',[])})))"
 ```
-把待建每个用例的 title 与该集合比对：已存在则标记"去重跳过"（除非用户允许重建），只在 dry-run 提交清单里列出状态；未存在的才进入步骤6 实际创建。用户批准后，跳过的用例不再创建。
+把待建每个用例的 title（**注意：是步骤5 加过模块前缀后的完整 title**）与该集合比对：已存在则标记"去重跳过"（除非用户允许重建），只在 dry-run 提交清单里列出状态；未存在的才进入步骤6 实际创建。用户批准后，跳过的用例不再创建。
 
 ### 步骤6 批量创建（⚠️ 三数组必须同位）
 循环逐条提交，`--data` 传**完整 JSON**：
@@ -162,9 +163,9 @@ npx zentao-cli testcase create --data '{"productID":<id>,"title":"<标题>","pri
 
 | 禅道字段 | 来源 | 处理 |
 |----------|------|------|
-| productID | 步骤3 确认/建的产品 | 必填 |
-| module | 模块名 → moduleID | 步骤4 用 v1 API 自动建并回填；确无法建才留空（不传该字段） |
-| title | 用例名称 | 原样 |
+| productID | 步骤3 确认/建的产品 | 必填；优先匹配禅道内最接近的产品，与用户确认 |
+| module | 模块名 → moduleID | 步骤4 逐级匹配现有模块树，确切模块缺失则**回退上一级模块**；挂载映射需用户确认 |
+| title | 用例名称 | **`<所属模块最后一级>-<用例名称>`**，如 `全维度资产台账-[列表查询】无条件查询展示全部资产` |
 | pri | 优先级 | P0→1 / P1→2 / P2→3 / P3→4（禅道 1 最大） |
 | type | 用例编号前缀 | TC-JIEKOU→interface，其余 feature |
 | precondition | 前置条件 + 测试数据 | 测试数据并入："前置；测试数据：X" |
