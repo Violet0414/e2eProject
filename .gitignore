@@ -6,3 +6,4 @@ exploreOutput/*
 .playwright-mcp
 generated_scripts/*
 logs/*
+*:Zone.Identifier*
