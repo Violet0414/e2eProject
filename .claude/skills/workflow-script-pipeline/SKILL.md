@@ -27,6 +27,10 @@ triggers:
 4. **运行收集** (test-script-run-collect)
 5. **失败反馈重写** (test-script-fix-loop)
 
+> **入口模式（二选一）**：
+> - **完整闭环**：从步骤1开始，按 1→2→3→4→5 顺序执行。
+> - **用户提供测试用例（直接入口）**：用户直接给出测试用例 Markdown（含 用例编号/route_path/用例名称/步骤/预期结果 表格）时，跳过步骤1/2，从步骤3开始执行 3→4→5。此时步骤3 的输入文件为用户指定的用例文件，启动前必须先完成「直接入口前置确认」（见步骤3 配置与流程控制规则 5）：向用户询问系统地址 BASE_URL，并检查用例 route_path——缺失时按模块归组向用户确认。
+
 ## 数据链路总览
 
 | 步骤 | 技能 | 输出产物 | 供下一步 |
@@ -137,8 +141,12 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
 ### 步骤3：生成自包含脚本（test-script-generate-standalone）
 
 - **技能文件**：`.claude/skills/test-script-generate-standalone/SKILL.md`
-- **输入文件**：`./explore_output/{日期_时间}/{时间戳}_测试用例.md`（步骤2 产出）
+- **输入文件**：完整闭环为 `./explore_output/{日期_时间}/{时间戳}_测试用例.md`（步骤2 产出）；直接入口为**用户提供的测试用例 Markdown**
 - **必填运行前置**：`BASE_URL`（向用户索要）+ 登录态 `auth_state.json`
+- **直接入口前置确认（跳过步骤1/2 时必须先完成，确认前不得启动 testid 批量采集）**：
+  1. **系统地址**：向用户询问 `BASE_URL`——它是脚本生成与 testid 采集的硬前置
+  2. **route_path 确认**：检查用例表格的 route_path 列，将 route_path 为空的用例按「所属模块」归组，向用户逐一确认各模块的路由（同一模块确认一次，全模块共用）；若本项目存在探索记录（`explore_output/` 下），其中的路由仅作建议值展示，**经用户确认后**方可采用
+  3. 用户确认/提供 → 回填到该模块所有 route_path 为空的用例后再继续；用户不提供 → 该模块用例 route_path **置空**（禁止猜测或编造），置空页面的 testid 采集将被跳过，定位器全部走语义 fallback
 - **登录态统一约定**：`auth_state.json` 一律落在 `generated_scripts/{需求名}_{日期}/.auth/auth_state.json`（与生成脚本 `AUTH_STATE` 默认值 `.auth/auth_state.json` 一致，脚本独立运行即读此路径）。来源：优先复用已有登录态（项目根 `.auth/auth_state.json` 或既有批次目录），否则导出当前已登录会话后写入批次 `.auth/` 目录；仍无则走 `login()` 填账号兜底。
 - **输出目录**：`./generated_scripts/{需求名}_{日期}/`（每用例一个 `.py` + `testids.json` + README）
 - **渐进式**：用例 ≥ 8 条时**并行分片生成**（见「核心规则」节）；testid 采集按该技能**批量模式**一次登录遍历全部页面（缓存优先，命中跳过重采）。
@@ -210,6 +218,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 3. **失败处理**：某步失败或输出未生成，停止流水线并向用户报告错误。
 4. **进度报告**：每步开始前 `正在执行步骤 n/5：{步骤名}...`；步骤3/步骤5 内部阶段性进度也回传。
 5. **人工确认点**：
+   - 直接入口（跳过步骤1/2）：先向用户确认 `BASE_URL`；用例不含 route_path 时，按「所属模块」归组向用户确认路由（探索记录候选仅作建议值，经确认后采用；不提供则置空），全部确认完成前不得启动 testid 采集与脚本生成。
    - 步骤2 完成后：展示用例统计，确认后再生成脚本。
    - 步骤3 前：确认 `BASE_URL` 与登录态来源（复用 `auth_state.json` / 填账号走 `login()`）—— 两者是步骤3 生成脚本与 testid 采集的硬前置，须先确认，避免采集降级。
 6. **闭环终止**：步骤5 达到 `--max-rounds`，或剩余失败仅为 `real_bug`/`missing_data`/`env`，即停止自动重写，剩余项转人工。
@@ -228,6 +237,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 - [ ] 五个步骤已按子会话 prompt 模板分别配置，各含 技能文件/输入/参考/输出
 - [ ] 步骤2 自动指向步骤1 的 `{日期_时间}` 目录，不让用户重选
 - [ ] 步骤3 需向用户索要 BASE_URL；登录态按「登录态统一约定」落位到 `{批次目录}/.auth/auth_state.json`
+- [ ] 直接入口（用户提供用例跳过步骤1/2）时：已先确认 BASE_URL；route_path 为空的用例已按模块归组向用户确认（不提供则置空），确认完成前未启动 testid 采集
 - [ ] 步骤3 testid 采集用**批量模式**（`--route-paths` + `--out-dir`，一次登录遍历全部未命中页面）；用例 ≥ 8 条时按页面/模块**并行分片**，page 片段先统一产出、steps 片段并行，仅回传进度不阻断
 - [ ] 步骤4 明确带 `--keep-results --merge-results` 保留 results.json 并保证报告完整
 - [ ] 步骤5 按 `--max-rounds` 自动迭代，遵守三条红线；失败用例 ≥ 10 条时并行分片分类/重写，重跑用 `--filter` 逗号多值一次完成
