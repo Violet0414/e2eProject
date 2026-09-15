@@ -54,6 +54,8 @@ def parse_args():
                    help="关闭共享浏览器模式，退回逐脚本独立浏览器+子进程（兼容旧行为）")
     p.add_argument("--merge-results", action="store_true",
                    help="合并已有 results.json 历史结果再生成报告（配合 --filter 使用，避免报告只含部分用例）")
+    p.add_argument("--case-doc", default="",
+                   help="测试用例.md 路径；缺省按批次日期/最新批次自动匹配 output/*/测试用例.md，找不到时降级按用例名称拼接")
     return p.parse_args()
 
 
@@ -489,8 +491,141 @@ def _merge_existing_results(script_dir: Path, current: dict) -> dict:
     return merged
 
 
+# =============================================================================
+# ⑤ 报告 bug 字段（bug标题/重现步骤/结果/预期/严重程度/优先级）
+#    内容优先取自测试用例.md（按用例编号反查），找不到时降级按用例名称拼接
+#    规则与 bug-to-zentao/build_bug_payload.py 保持一致
+# =============================================================================
+SEV1_PATTERNS = [
+    r"提交失败", r"保存失败", r"新增失败", r"编辑失败", r"删除失败",
+    r"导入失败", r"导出失败", r"流程不通", r"数据丢失", r"统计数据?错误",
+    r"列表没有显示", r"没有显示出", r"页面报错", r"系统报错", r"闪退",
+    r"权限类", r"未授权.*(仍|未.*(显示|隐藏))",
+]
+SEV3_PATTERNS = [
+    r"格式", r"长度", r"提示文案", r"提示消息", r"展示效果", r"样式",
+    r"性能", r"速度", r"对齐", r"间距", r"文案",
+]
+
+
+def _find_case_doc(script_dir: Path, explicit: str):
+    if explicit:
+        p = Path(os.path.expanduser(explicit))
+        if p.exists():
+            return p
+        print(f"  ⚠️ --case-doc 不存在，降级按用例名称拼接 bug 字段: {p}")
+        return None
+    m = re.search(r"(\d{4}-\d{2}-\d{2})$", script_dir.name)
+    if m:
+        p = GENERATED_ROOT.parent / "output" / m.group(1) / "测试用例.md"
+        if p.exists():
+            return p
+    out_root = GENERATED_ROOT.parent / "output"
+    if out_root.exists():
+        cands = sorted(out_root.glob("*/测试用例.md"), key=lambda p: p.stat().st_mtime)
+        if cands:
+            return cands[-1]
+    return None
+
+
+def _load_case_doc_for(script_dir: Path, explicit: str) -> dict:
+    path = _find_case_doc(script_dir, explicit)
+    if not path:
+        print("  ℹ️ 未找到测试用例.md，报告 bug 字段按用例名称规则拼接")
+        return {}
+    rows = {}
+    header = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if "用例编号" in cells:
+            header = cells
+            continue
+        if header is None or re.fullmatch(r"[\s|:\-]+", line):
+            continue
+        row = dict(zip(header, cells))
+        cid = row.get("用例编号", "")
+        if cid:
+            rows[cid] = row
+    print(f"  📄 用例文档: {path}（{len(rows)} 条）")
+    return rows
+
+
+def _md_cell(text: str, limit: int = 0) -> str:
+    text = (text or "").replace("\n", "<br>").replace("|", "\\|").strip()
+    if limit and len(text) > limit:
+        text = text[:limit] + "…"
+    return text or "-"
+
+
+def _bug_title(name: str, module: str) -> str:
+    if name.startswith("【"):
+        return name
+    if module:
+        return f"【{module.split('-')[-1]}】{name}"
+    return name
+
+
+def _bug_expect(name: str, row: dict) -> str:
+    if row.get("预期结果"):
+        return row["预期结果"]
+    m = re.search(r"验证(.+)", name)
+    exp = m.group(1) if m else name
+    return re.sub(r"（[^）]*(缺陷|场景)[^）]*）", "", exp).strip()
+
+
+def _bug_steps(module: str, name: str, row: dict) -> str:
+    if row.get("步骤"):
+        return row["步骤"]
+    m = re.match(r"【([^】]+)】", name)
+    loc = module or (m.group(1) if m else "目标模块")
+    return f"1. 进入 {loc} 对应页面<br>2. 执行用例操作：{_bug_expect(name, row)}"
+
+
+def _assert_message(err: str) -> str:
+    m = re.findall(r"(?:AssertionError|Exception|Error):\s*(.+)", err or "")
+    if m:
+        return m[-1].strip()
+    lines = [l.strip() for l in (err or "").strip().splitlines() if l.strip()]
+    return lines[-1] if lines else (err or "").strip()
+
+
+def _bug_severity(name: str, err: str, row: dict) -> int:
+    pri = (row.get("优先级") or "").strip()
+    if pri.startswith("高"):
+        return 1
+    if pri.startswith("中"):
+        return 2
+    if pri.startswith("低"):
+        return 3
+    text = f"{name}\n{err}"
+    for p in SEV1_PATTERNS:
+        if re.search(p, text):
+            return 1
+    for p in SEV3_PATTERNS:
+        if re.search(p, text):
+            return 3
+    return 2
+
+
+def _bug_cells(name: str, module: str, err: str, row: dict) -> list:
+    sev = _bug_severity(name, err, row)
+    actual = _assert_message(err) or "见失败原因"
+    return [
+        _md_cell(_bug_title(name, module)),
+        _md_cell(_bug_steps(module, name, row)),
+        _md_cell(actual, limit=200),
+        _md_cell(_bug_expect(name, row)),
+        str(sev),
+        str(sev),  # pri=sev，与 bug-to-zentao 规范一致
+    ]
+
+
 def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> None:
     ordered = sorted(results.values(), key=lambda r: r["id"])
+    case_doc = _load_case_doc_for(script_dir, getattr(args, "case_doc", ""))
     report = []
     report.append("# 测试报告")
     report.append("")
@@ -509,8 +644,8 @@ def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> 
 
     report.append("## 执行结果")
     report.append("")
-    report.append("| 用例ID | 模块 | 状态 | 名称 | 失败原因 | 截图 |")
-    report.append("|--------|------|------|------|----------|------|")
+    report.append("| 用例ID | 模块 | 状态 | 名称 | 失败原因 | bug标题 | 重现步骤 | 结果 | 预期 | 严重程度 | 优先级 | 截图 |")
+    report.append("|--------|------|------|------|----------|---------|----------|------|------|----------|--------|------|")
     for r in ordered:
         cid = r["id"]
         status = r.get("status", "failed")
@@ -528,7 +663,15 @@ def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> 
             err_short = err_short.replace("|", "\\|")[:120]
         shot = r.get("screenshot", "") or ""
         shot_md = f"[{os.path.basename(shot)}]({shot})" if shot else ""
-        report.append(f"| {cid} | {module} | {status_cn} | {name} | {err_short} | {shot_md} |")
+        if status == "passed":
+            bug_cells = ["-"] * 6
+        else:
+            row = case_doc.get(cid, {})
+            bug_cells = _bug_cells(name, module, err, row)
+        report.append(
+            f"| {cid} | {module} | {status_cn} | {name} | {err_short} | "
+            + " | ".join(bug_cells) + f" | {shot_md} |"
+        )
     report.append("")
 
     if failed_cases:
