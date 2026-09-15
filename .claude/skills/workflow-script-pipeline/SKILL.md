@@ -1,5 +1,5 @@
 ---
-name: script-pipeline
+name: workflow-script-pipeline
 description: 测试脚本闭环流水线 - 依次执行 页面探索→探索转用例→生成自包含脚本→运行收集→失败反馈重写，每步独立子会话+渐进式读取，形成完整测试脚本闭环
 triggers:
   - "测试脚本流水线"
@@ -35,7 +35,7 @@ triggers:
 
 | 步骤 | 技能 | 输出产物 | 供下一步 |
 |------|------|----------|----------|
-| 1 | explore-site | `explore_output/{日期_时间}/explore_record.md` + `recorded_code.py`（后者为探索附产物，闭环后续步骤不消费） | 步骤2 输入 |
+| 1 | explore-site | `explore_output/{日期_时间}/explore_record.md` | 步骤2 输入 |
 | 2 | generate-testcases-from-explore | `explore_output/{日期_时间}/{时间戳}_测试用例.md` + `.xlsx` | 步骤3 输入 |
 | 3 | test-script-generate-standalone | `generated_scripts/{需求}_{日期}/`（脚本按**模块名原文**分子目录存放：`{模块名}/{case_id}.py`，另有 `testids.json`） | 步骤4 输入 |
 | 4 | test-script-run-collect | `测试报告.md` + `screenshots/`（用 `--keep-results` 保留 results.json） | 步骤5 输入 |
@@ -101,7 +101,7 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
 - **输入**：用户提供的页面URL（流水线启动时传入）、登录凭据（可选）
 - **参考文件**：`./files/templates/test_points_requirement.md`
 - **输出目录**：`./explore_output/{日期_时间}/`（由本步初始化创建）
-- **输出文件**：`./explore_output/{日期_时间}/explore_record.md` + `recorded_code.py`
+- **输出文件**：`./explore_output/{日期_时间}/explore_record.md`
 - **备注**：向主会话回传 `日期_时间` 目录名，供后续步骤指向。如页面可划分为互不跳转的独立模块且用户要求并行，可按 explore-site 技能「3.1 多 MCP 实例并行探索」拆分片（各分片绑定独立 playwright 实例，只读操作并行，写操作归主会话串行）。
 
 子会话 prompt 示例：
@@ -113,8 +113,7 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
 3. 读取参考文件：./files/templates/test_points_requirement.md
 4. 严格按照技能定义执行，初始化时创建 ./explore_output/{日期_时间}/ 与 screenshots/ 子目录
 5. 将探索记录写入：./explore_output/{日期_时间}/explore_record.md
-6. 将元素操作代码写入：./explore_output/{日期_时间}/recorded_code.py
-7. 回传：{日期_时间} 目录名、页面标题、探索模块数/字段数摘要
+6. 回传：{日期_时间} 目录名、页面标题、探索模块数/字段数摘要
 ```
 
 ### 步骤2：探索转用例（generate-testcases-from-explore）
