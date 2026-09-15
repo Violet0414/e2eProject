@@ -194,7 +194,7 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 
 - **技能文件**：`.claude/skills/test-script-fix-loop/SKILL.md`
 - **输入**：`generated_scripts/{需求名}_{日期}/results.json`（步骤4 用 `--keep-results` 保留）
-- **输出**：重写脚本 + `fix_feedbacks.md` + `{批次目录}/fix_loop_work/{case_id}.json`
+- **输出**：重写脚本 + `fix_feedbacks.md` + `{批次目录}/fix_loop_work/{case_id}.json` + **最终 `测试报告.md`**（流水线收尾产物，必须为完整报告：含批次全部用例的最终结果，不得只剩被重跑的几条）
 - **迭代**：按 `--max-rounds`（默认 2）自动循环"重写→重跑"，直至通过或无可重写项。
 - **三条红线**：不改预期凑通过；只改定位/断言行；缺数据/缺会话不自动重写。
 - **分类+重写一次完成**：`build_feedbacks.py` 已对每个失败用例自动预分类（`auto_class`/`confidence`/`needs_screenshot`，见 `fix_feedbacks.md` 头部统计），子会话**不要**把分类和重写拆成两个阶段——高置信度项直接按 `auto_class` 处置，仅低置信度项复核（`needs_screenshot == false` 一律不看截图）。
@@ -210,6 +210,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
   分组参照 `fix_feedbacks.md` 头部预分类统计（同类归同一分片）；仅低置信度且 `needs_screenshot == true` 才看截图。
 - 对被重写的用例用 run_collect **一次**定向重跑：
   `--filter {case_id1},{case_id2},... --keep-results --merge-results`（`--filter` 支持逗号分隔多前缀，避免多次启动进程；`--merge-results` 保证重跑后报告仍含全部用例）。
+- **最终 `测试报告.md`（强制交付）**：步骤5 结束（通过 / 达到 `--max-rounds` / 转人工）后，批次根目录必须存在一份**完整**的 `测试报告.md`——含全部用例的最新状态，作为流水线最终交付物；重跑一律带 `--merge-results`，禁止只输出被重跑子集的报告。
 
 ## 流程控制规则
 
@@ -242,5 +243,6 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 - [ ] 步骤3 生成脚本按**模块名原文子目录**存放（spec.json 带 `module`，渲染到 `{批次}/{模块名}/{case_id}.py`）；步骤4/5 工具递归发现脚本，报告/截图/results.json 仍在批次根目录
 - [ ] 步骤4 明确带 `--keep-results --merge-results` 保留 results.json 并保证报告完整
 - [ ] 步骤5 按 `--max-rounds` 自动迭代，遵守三条红线；失败用例 ≥ 10 条时并行分片分类/重写，重跑用 `--filter` 逗号多值一次完成
+- [ ] 最终交付包含**完整的 `测试报告.md`**（步骤4 生成，步骤5 每轮重跑后经 `--merge-results` 更新），含批次全部用例的最终结果，非仅被重跑子集
 - [ ] 渐进式读取约定写入各步与流程控制（长文件分批/分块、步骤3 并行分片）
 - [ ] 流程控制规则齐全：顺序执行/检查点/失败处理/进度报告/人工确认点/闭环终止/完成报告
