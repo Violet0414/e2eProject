@@ -197,7 +197,8 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 - **输出**：重写脚本 + `fix_feedbacks.md` + `{批次目录}/fix_loop_work/{case_id}.json` + **最终 `测试报告.md`**（流水线收尾产物，必须为完整报告：含批次全部用例的最终结果，不得只剩被重跑的几条）
 - **迭代**：按 `--max-rounds`（默认 2）自动循环"重写→重跑"，直至通过或无可重写项。
 - **三条红线**：不改预期凑通过；只改定位/断言行；缺数据/缺会话不自动重写。
-- **分类+重写一次完成**：`build_feedbacks.py` 已对每个失败用例自动预分类（`auto_class`/`confidence`/`needs_screenshot`，见 `fix_feedbacks.md` 头部统计），子会话**不要**把分类和重写拆成两个阶段——高置信度项直接按 `auto_class` 处置，仅低置信度项复核（`needs_screenshot == false` 一律不看截图）。
+- **分类+重写一次完成**：`build_feedbacks.py` 已对每个失败用例自动预分类并给出**处置分组**（`auto_class`/`confidence`/`needs_review`/`needs_screenshot`，见 `fix_feedbacks.md` 头部统计），子会话**不要**把分类和重写拆成两个阶段——高置信度项直接按 `auto_class` 处置，仅低置信度项复核（`needs_screenshot == false` 一律不看截图）。
+- **处置分组提速**：`needs_review == false`（高置信度 real_bug/missing_data/env/timeout）的用例**不进子会话**，主会话直接标注"转人工"；子会话只处理「需子会话处置」组（`needs_review == true`）；该组为 0 条时不起子会话，步骤5 直接终止。
 
 子会话执行示例（第 1 轮）：
 ```
@@ -222,7 +223,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
    - 直接入口（跳过步骤1/2）：先向用户确认 `BASE_URL`；用例不含 route_path 时，按「所属模块」归组向用户确认路由（探索记录候选仅作建议值，经确认后采用；不提供则置空），全部确认完成前不得启动 testid 采集与脚本生成。
    - 步骤2 完成后：展示用例统计，确认后再生成脚本。
    - 步骤3 前：确认 `BASE_URL` 与登录态来源（复用 `auth_state.json` / 填账号走 `login()`）—— 两者是步骤3 生成脚本与 testid 采集的硬前置，须先确认，避免采集降级。
-6. **闭环终止**：步骤5 达到 `--max-rounds`，或剩余失败仅为 `real_bug`/`missing_data`/`env`，即停止自动重写，剩余项转人工。
+6. **闭环终止**：步骤5 达到 `--max-rounds`，或剩余失败仅为 `real_bug`/`missing_data`/`env`，或 `build_feedbacks.py` 输出「需子会话处置 0 条」（此时下一轮**不启动子会话**，直接终止），即停止自动重写，剩余项转人工。
 7. **完成报告**：列全部关键产物路径（explore_record / 测试用例 / 脚本目录 / 测试报告 / fix_feedbacks）。
 
 ## 复用既有技能自带的工具/脚本
@@ -243,6 +244,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 - [ ] 步骤3 生成脚本按**模块名原文子目录**存放（spec.json 带 `module`，渲染到 `{批次}/{模块名}/{case_id}.py`）；步骤4/5 工具递归发现脚本，报告/截图/results.json 仍在批次根目录
 - [ ] 步骤4 明确带 `--keep-results --merge-results` 保留 results.json 并保证报告完整
 - [ ] 步骤5 按 `--max-rounds` 自动迭代，遵守三条红线；失败用例 ≥ 10 条时并行分片分类/重写，重跑用 `--filter` 逗号多值一次完成
+- [ ] 步骤5 已按「处置分组」过滤：`needs_review == false` 的高置信度不可重写类未进子会话；「需子会话处置」为 0 条时下一轮未启动子会话直接终止
 - [ ] 最终交付包含**完整的 `测试报告.md`**（步骤4 生成，步骤5 每轮重跑后经 `--merge-results` 更新），含批次全部用例的最终结果，非仅被重跑子集
 - [ ] 渐进式读取约定写入各步与流程控制（长文件分批/分块、步骤3 并行分片）
 - [ ] 流程控制规则齐全：顺序执行/检查点/失败处理/进度报告/人工确认点/闭环终止/完成报告

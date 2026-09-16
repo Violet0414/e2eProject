@@ -35,8 +35,24 @@ LOCATOR_RE = re.compile(
 )
 TIMEOUT_RE = re.compile(r"(timeout|timed out|超时)", re.I)
 EMPTY_VAL_RE = re.compile(r"(received|got|but found)\s*''|值为空|取值为空")
-MISMATCH_RE = re.compile(r"(expected|received|expect)", re.I)
+MISMATCH_RE = re.compile(r"(expected|received|expect|期望|预期)", re.I)
 STACK_RE = re.compile(r"(Traceback|TimeoutError|Error:|Exception)", re.I)
+
+# 可重写类（子会话需处理）与不可重写类（高置信度时免复核、直转人工）
+REWRITABLE_CLASSES = {"locator", "assertion_method"}
+NON_REWRITABLE_CLASSES = {"real_bug", "missing_data", "env", "timeout"}
+
+
+def needs_review(auto_class: str, confidence: str) -> bool:
+    """是否需要 LLM 复核/子会话处置（提速约定：先规则后 LLM）。
+
+    False = 高置信度且为不可重写类（real_bug/missing_data/env/timeout），
+            主会话直接标注"转人工"，不进子会话。
+    True  = 可重写类高置信度（子会话直接重写）或低置信度/未分类（子会话复核）。
+    """
+    if confidence == "high" and auto_class in NON_REWRITABLE_CLASSES:
+        return False
+    return True
 
 
 def parse_args():
@@ -186,13 +202,19 @@ def main() -> int:
     # 先做一轮预分类统计，写进总览头部，供子会话按类快速处置/分片
     script_index = build_script_index(script_dir)
     class_stats = {}
+    review_stats = {}
+    skip_stats = {}
     for e in failed:
         cid = e.get("id") or e.get("name") or "unknown"
         script = script_index.get(cid) or script_dir / f"{cid}.py"
         lines = candidate_lines(script.read_text(encoding="utf-8")) if script.exists() else []
-        cls, _ = auto_classify(e.get("error", ""), lines)
+        cls, conf = auto_classify(e.get("error", ""), lines)
         key = cls or "未分类"
         class_stats.setdefault(key, []).append(cid)
+        (review_stats if needs_review(cls, conf) else skip_stats).setdefault(key, []).append(cid)
+
+    n_review = sum(len(v) for v in review_stats.values())
+    n_skip = sum(len(v) for v in skip_stats.values())
 
     md_lines = []
     md_lines.append("# 失败反馈包（fix-loop）")
@@ -202,12 +224,25 @@ def main() -> int:
     md_lines.append(f"- **失败用例数**：{len(failed)} / {len(entries)}")
     md_lines.append(f"- **脚本目录**：`{script_dir}`")
     md_lines.append("")
-    md_lines.append("**预分类统计**（高置信度可直接处置，低置信度需复核；可重写类仅 locator / assertion_method）：")
+    md_lines.append("**处置分组**（按预分类：需子会话处置 vs 免复核直转人工）：")
     md_lines.append("")
-    for cls_name in sorted(class_stats):
-        ids = class_stats[cls_name]
-        md_lines.append(f"- `{cls_name}`（{len(ids)} 条）：{', '.join(ids)}")
+    md_lines.append(f"- **需子会话处置**（{n_review} 条，可重写类高置信度 + 全部低置信度/未分类）：")
+    for cls_name in sorted(review_stats):
+        ids = review_stats[cls_name]
+        md_lines.append(f"  - `{cls_name}`（{len(ids)} 条）：{', '.join(ids)}")
+    if not review_stats:
+        md_lines.append("  - （无）")
+    md_lines.append(f"- **免复核直转人工**（{n_skip} 条，高置信度不可重写类，主会话直接标注，不进子会话）：")
+    for cls_name in sorted(skip_stats):
+        ids = skip_stats[cls_name]
+        md_lines.append(f"  - `{cls_name}`（{len(ids)} 条）：{', '.join(ids)}")
+    if not skip_stats:
+        md_lines.append("  - （无）")
     md_lines.append("")
+    if n_review == 0:
+        md_lines.append("> ✅ **本轮无需 LLM 复核/重写项**（全部为高置信度不可重写类），")
+        md_lines.append("> 按红线不自动重写 → **闭环立即终止，不进入下一轮**，剩余项全部转人工。")
+        md_lines.append("")
     if args.round >= args.max_rounds:
         md_lines.append("")
         md_lines.append("> ⚠️ 达到最大轮次，本轮之后应停止自动重写，未通过项转为人工处理。")
@@ -229,6 +264,7 @@ def main() -> int:
             "candidate_lines": lines,
             "auto_class": cls,
             "confidence": conf,
+            "needs_review": needs_review(cls, conf),
             "needs_screenshot": needs_screenshot(conf),
             "round": args.round,
             "max_rounds": args.max_rounds,
@@ -241,6 +277,7 @@ def main() -> int:
         md_lines.append(
             f"- **预分类**：`{cls or '未分类'}`（置信度 {conf}）"
             + ("" if fb["needs_screenshot"] else "，无需看截图")
+            + ("" if fb["needs_review"] else "，**免复核直转人工**")
         )
         if e.get("screenshot"):
             md_lines.append(f"- **截图**：`{e.get('screenshot')}`（仅分类存疑时打开）")
@@ -264,6 +301,9 @@ def main() -> int:
     (script_dir / "fix_feedbacks.md").write_text("\n".join(md_lines), encoding="utf-8")
     print(f"已生成 {len(failed)} 份失败反馈包于 {out_dir}/")
     print(f"总览：{script_dir}/fix_feedbacks.md")
+    print(f"处置分组：需子会话处置 {n_review} 条；免复核直转人工 {n_skip} 条")
+    if n_review == 0:
+        print("✅ 无需 LLM 复核/重写项（全部为高置信度不可重写类）→ 闭环终止，不进入下一轮，剩余项转人工。")
     return 0
 
 

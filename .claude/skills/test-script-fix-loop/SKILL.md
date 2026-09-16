@@ -57,10 +57,15 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
     --script-dir "generated_scripts/{需求名}_{日期}" \
     --round 1 --max-rounds 2
 ```
-- 产出 `{批次目录}/fix_feedbacks.md`（总览，含**预分类统计**）+ `{批次目录}/fix_loop_work/{case_id}.json`（逐用例）。
-- 每份 JSON 含三个预分类字段：
+- 产出 `{批次目录}/fix_feedbacks.md`（总览，含**处置分组**统计）+ `{批次目录}/fix_loop_work/{case_id}.json`（逐用例）。
+- 总览头部按预分类把失败用例分为两组（提速关键，直接采用）：
+  - **需子会话处置**（可重写类高置信度 + 全部低置信度/未分类）→ 进入第三步子会话；
+  - **免复核直转人工**（高置信度 real_bug / missing_data / env / timeout）→ **不进子会话**，主会话按红线直接标注转人工。
+  - 若「需子会话处置」为 **0 条**，脚本 stdout 会提示"闭环终止，不进入下一轮"，本技能到此结束。
+- 每份 JSON 含四个预分类字段：
   - `auto_class`：规则匹配出的根因类（env / missing_data / assertion_method / real_bug / locator / timeout / null=未分类）；
   - `confidence`：`high`（特征明确，可直接按该类处置）/ `low`（仅弱特征，需 LLM 复核）；
+  - `needs_review`：`false` 表示高置信度不可重写类，免 LLM 复核直转人工（主会话处理，不进子会话）；
   - `needs_screenshot`：`false` 表示高置信度、无需打开截图。
 - `--round`/`--max-rounds` 写进反馈，用于判断是否达到终止轮次。
 - 无失败用例时脚本直接提示"无反馈需生成"，本技能到此结束。
@@ -68,6 +73,10 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 ### 第三步：逐失败用例"分类根因 + 按类处置"一次完成
 
 **不要**把分类和重写拆成两个阶段：读取 `fix_loop_work/{case_id}.json` 后，对每条用例**判定根因并立即处置**（改 `.py` 或标记交人工），一轮子会话内完成，避免重复读取往返。
+
+**先按处置分组过滤，再把剩余项交给子会话（提速约定）**：
+- `needs_review == false`（高置信度 real_bug / missing_data / env / timeout）的用例**不进入子会话**——预分类已明确按红线不重写，主会话直接在 `fix_feedbacks.md` 标注"转人工"并写明原因；
+- 子会话**只处理 `needs_review == true` 的用例**（可重写类高置信度 + 全部低置信度/未分类）；无可处置项时不起子会话，本技能直接到第七步汇报。
 
 **分类以预分类为起点，不逐条从零判**：
 - `confidence == "high"` → 直接按 `auto_class` 处置，**不再复核**（错误特征明确）；
@@ -116,6 +125,7 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 
 - 被重写用例**已通过**，或无失败，且未达 `--max-rounds` → 关闭本轮。
 - 仍有**可重写根因**（locator/assertion）失败，且轮次 < `--max-rounds` → 以 `--round <n+1>` 回到第二步再迭代。
+- **下一轮短路（提速）**：重跑后先重跑 `build_feedbacks.py --round <n+1>` 看其「处置分组」——若「需子会话处置」为 **0 条**（剩余失败全为高置信度不可重写类），**不再启动子会话**，闭环立即终止转人工，不要为确认结论再跑一轮 LLM 复核。
 - 剩余失败仅剩 `real_bug` / `missing_data` / 已达 `--max-rounds` → **停止自动重写**，将其转为需人工处理，如实汇报。
 
 ### 第七步：汇报与落盘
@@ -135,7 +145,9 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 - [ ] `build_feedbacks.py` 通过 `python -m py_compile`；`--help` 输出参数完整；缺 `--script-dir` 有明确报错
 - [ ] 第一步已确认有运行结果文件；若无已用 `run_collect --keep-results` 重跑生成
 - [ ] `fix_feedbacks.md` + `fix_loop_work/{case_id}.json` 已生成，失败用例数与 `测试报告.md` 一致
-- [ ] 已用 `build_feedbacks.py` 的预分类（`auto_class`/`confidence`/`needs_screenshot`）作为分类起点；高置信度项直接处置未重复复核，低置信度项复核有错误信息依据
+- [ ] 高置信度不可重写类（real_bug/missing_data/env/timeout，即 `needs_review == false`）**未进入子会话复核**，已由主会话按「免复核直转人工」分组直接标注
+- [ ] 子会话仅处理 `needs_review == true` 的用例；「需子会话处置」为 0 条时未启动子会话直接终止
+- [ ] 已用 `build_feedbacks.py` 的预分类（`auto_class`/`confidence`/`needs_review`/`needs_screenshot`）作为分类起点；高置信度项直接处置未重复复核，低置信度项复核有错误信息依据
 - [ ] 分类与处置在同一次子会话内完成（未拆成两个阶段重复读取）；失败用例多（≥ 10 条）时已按 `fix_loop_work/{case_id}.json` **并行分片**（各子会话改不同 `.py`，分组参照预分类统计）
 - [ ] 仅低置信度且 `needs_screenshot == true` 的用例才打开截图（先文本后截图）
 - [ ] 重写仅发生在 `locator`/`assertion_method`，且只改定位/断言行，五层结构未破坏
