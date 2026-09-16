@@ -257,10 +257,18 @@ def main():
     args = ap.parse_args()
 
     report_path = args.report
-    batch_dir = os.path.dirname(os.path.abspath(report_path))
-    results_path = args.results_json or os.path.join(batch_dir, "results.json")
+    report_dir = os.path.dirname(os.path.abspath(report_path))
+    # 报告文件可能被用户拷贝到桌面等位置，截图/results.json 仍以报告内"脚本目录"为准
+    results_path = args.results_json or os.path.join(report_dir, "results.json")
 
     failed_rows, detail_tracebacks, report_meta = parse_report(report_path)
+    if not os.path.exists(results_path) and report_meta.get("batch_dir"):
+        alt_results = os.path.join(report_meta["batch_dir"], "results.json")
+        if os.path.exists(alt_results):
+            results_path = alt_results
+    batch_dir_candidates = [report_dir]
+    if report_meta.get("batch_dir"):
+        batch_dir_candidates.append(report_meta["batch_dir"])
     results = load_results_jsonl(results_path)
 
     bugs = []
@@ -285,7 +293,15 @@ def main():
         actual = item.get("actual", "").strip() or extract_assert_message(error_text)
         expectation = item.get("expectation", "").strip() or build_expectation(item["name"])
         title = item.get("bug_title", "").strip() or build_title(item["name"], item["module"])
-        png_abs = os.path.join(batch_dir, screenshot) if screenshot else ""
+        png_abs = ""
+        if screenshot:
+            for cand in batch_dir_candidates:
+                p = os.path.join(cand, screenshot)
+                if os.path.exists(p):
+                    png_abs = p
+                    break
+            else:
+                png_abs = os.path.join(batch_dir_candidates[0], screenshot)
 
         embedded, embed_note = None, "未启用内嵌"
         if args.screenshot_mode == "embed" and classification == "defect":
@@ -318,7 +334,7 @@ def main():
     script_issues = [b for b in bugs if b["classification"] == "script_issue"]
     payload = {
         "report": report_path,
-        "batch_dir": batch_dir,
+        "batch_dir": report_meta.get("batch_dir") or batch_dir_candidates[0],
         "report_meta": report_meta,
         "stats": {
             "failed_total": len(bugs),
