@@ -7,3 +7,5 @@ exploreOutput/*
 generated_scripts/*
 logs/*
 *:Zone.Identifier*
+__pycache__/
+*.pyc

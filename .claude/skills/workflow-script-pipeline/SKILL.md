@@ -1,5 +1,5 @@
 ---
-name: script-pipeline
+name: workflow-script-pipeline
 description: 测试脚本闭环流水线 - 依次执行 页面探索→探索转用例→生成自包含脚本→运行收集→失败反馈重写，每步独立子会话+渐进式读取，形成完整测试脚本闭环
 triggers:
   - "测试脚本流水线"
@@ -27,13 +27,17 @@ triggers:
 4. **运行收集** (test-script-run-collect)
 5. **失败反馈重写** (test-script-fix-loop)
 
+> **入口模式（二选一）**：
+> - **完整闭环**：从步骤1开始，按 1→2→3→4→5 顺序执行。
+> - **用户提供测试用例（直接入口）**：用户直接给出测试用例 Markdown（含 用例编号/route_path/用例名称/步骤/预期结果 表格）时，跳过步骤1/2，从步骤3开始执行 3→4→5。此时步骤3 的输入文件为用户指定的用例文件，启动前必须先完成「直接入口前置确认」（见步骤3 配置与流程控制规则 5）：向用户询问系统地址 BASE_URL，并检查用例 route_path——缺失时按模块归组向用户确认。
+
 ## 数据链路总览
 
 | 步骤 | 技能 | 输出产物 | 供下一步 |
 |------|------|----------|----------|
-| 1 | explore-site | `explore_output/{日期_时间}/explore_record.md` + `recorded_code.py`（后者为探索附产物，闭环后续步骤不消费） | 步骤2 输入 |
+| 1 | explore-site | `explore_output/{日期_时间}/explore_record.md` | 步骤2 输入 |
 | 2 | generate-testcases-from-explore | `explore_output/{日期_时间}/{时间戳}_测试用例.md` + `.xlsx` | 步骤3 输入 |
-| 3 | test-script-generate-standalone | `generated_scripts/{需求}_{日期}/`（每用例一个 `.py` + `testids.json`） | 步骤4 输入 |
+| 3 | test-script-generate-standalone | `generated_scripts/{需求}_{日期}/`（脚本按**模块名原文**分子目录存放：`{模块名}/{case_id}.py`，另有 `testids.json`） | 步骤4 输入 |
 | 4 | test-script-run-collect | `测试报告.md` + `screenshots/`（用 `--keep-results` 保留 results.json） | 步骤5 输入 |
 | 5 | test-script-fix-loop | 重写脚本 + `fix_feedbacks.md` + 最终 `测试报告.md` | 交付 |
 
@@ -61,6 +65,7 @@ triggers:
 general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_id}/` 片段。约束：
 - **testid 批量采集先做一次**（一次登录遍历全部待采页面，浏览器只启动一次；脚本自动跳过缓存命中页，加 `--refresh` 强制重采），完成后各分片读缓存，不再各自采
 - **同页面的 page 片段仅由一个分片写**（按页面划分天然无冲突）
+- 按模块划分分片时与脚本输出目录天然对应（spec.json 带 `module` = 用例「所属模块」原文，脚本渲染到 `{批次}/{模块名}/` 子目录，互不覆盖）
 - 各分片全部就绪后，统一跑一次 `gen_script.py` 渲染 + `selfcheck.py` 自检
 
 **步骤5（失败反馈重写）**：失败用例多（≥10 条）时，按 `fix_loop_work/{case_id}.json` 分组拆 2~3 个并行子会话，
@@ -96,7 +101,7 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
 - **输入**：用户提供的页面URL（流水线启动时传入）、登录凭据（可选）
 - **参考文件**：`./files/templates/test_points_requirement.md`
 - **输出目录**：`./explore_output/{日期_时间}/`（由本步初始化创建）
-- **输出文件**：`./explore_output/{日期_时间}/explore_record.md` + `recorded_code.py`
+- **输出文件**：`./explore_output/{日期_时间}/explore_record.md`
 - **备注**：向主会话回传 `日期_时间` 目录名，供后续步骤指向。如页面可划分为互不跳转的独立模块且用户要求并行，可按 explore-site 技能「3.1 多 MCP 实例并行探索」拆分片（各分片绑定独立 playwright 实例，只读操作并行，写操作归主会话串行）。
 
 子会话 prompt 示例：
@@ -108,8 +113,7 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
 3. 读取参考文件：./files/templates/test_points_requirement.md
 4. 严格按照技能定义执行，初始化时创建 ./explore_output/{日期_时间}/ 与 screenshots/ 子目录
 5. 将探索记录写入：./explore_output/{日期_时间}/explore_record.md
-6. 将元素操作代码写入：./explore_output/{日期_时间}/recorded_code.py
-7. 回传：{日期_时间} 目录名、页面标题、探索模块数/字段数摘要
+6. 回传：{日期_时间} 目录名、页面标题、探索模块数/字段数摘要
 ```
 
 ### 步骤2：探索转用例（generate-testcases-from-explore）
@@ -137,8 +141,12 @@ general-purpose 子会话，各会话只写自己负责的 `_specs/cases/{case_i
 ### 步骤3：生成自包含脚本（test-script-generate-standalone）
 
 - **技能文件**：`.claude/skills/test-script-generate-standalone/SKILL.md`
-- **输入文件**：`./explore_output/{日期_时间}/{时间戳}_测试用例.md`（步骤2 产出）
+- **输入文件**：完整闭环为 `./explore_output/{日期_时间}/{时间戳}_测试用例.md`（步骤2 产出）；直接入口为**用户提供的测试用例 Markdown**
 - **必填运行前置**：`BASE_URL`（向用户索要）+ 登录态 `auth_state.json`
+- **直接入口前置确认（跳过步骤1/2 时必须先完成，确认前不得启动 testid 批量采集）**：
+  1. **系统地址**：向用户询问 `BASE_URL`——它是脚本生成与 testid 采集的硬前置
+  2. **route_path 确认**：检查用例表格的 route_path 列，将 route_path 为空的用例按「所属模块」归组，向用户逐一确认各模块的路由（同一模块确认一次，全模块共用）；若本项目存在探索记录（`explore_output/` 下），其中的路由仅作建议值展示，**经用户确认后**方可采用
+  3. 用户确认/提供 → 回填到该模块所有 route_path 为空的用例后再继续；用户不提供 → 该模块用例 route_path **置空**（禁止猜测或编造），置空页面的 testid 采集将被跳过，定位器全部走语义 fallback
 - **登录态统一约定**：`auth_state.json` 一律落在 `generated_scripts/{需求名}_{日期}/.auth/auth_state.json`（与生成脚本 `AUTH_STATE` 默认值 `.auth/auth_state.json` 一致，脚本独立运行即读此路径）。来源：优先复用已有登录态（项目根 `.auth/auth_state.json` 或既有批次目录），否则导出当前已登录会话后写入批次 `.auth/` 目录；仍无则走 `login()` 填账号兜底。
 - **输出目录**：`./generated_scripts/{需求名}_{日期}/`（每用例一个 `.py` + `testids.json` + README）
 - **渐进式**：用例 ≥ 8 条时**并行分片生成**（见「核心规则」节）；testid 采集按该技能**批量模式**一次登录遍历全部页面（缓存优先，命中跳过重采）。
@@ -186,7 +194,7 @@ python3 .claude/skills/test-script-run-collect/run_collect.py \
 
 - **技能文件**：`.claude/skills/test-script-fix-loop/SKILL.md`
 - **输入**：`generated_scripts/{需求名}_{日期}/results.json`（步骤4 用 `--keep-results` 保留）
-- **输出**：重写脚本 + `fix_feedbacks.md` + `{批次目录}/fix_loop_work/{case_id}.json`
+- **输出**：重写脚本 + `fix_feedbacks.md` + `{批次目录}/fix_loop_work/{case_id}.json` + **最终 `测试报告.md`**（流水线收尾产物，必须为完整报告：含批次全部用例的最终结果，不得只剩被重跑的几条）
 - **迭代**：按 `--max-rounds`（默认 2）自动循环"重写→重跑"，直至通过或无可重写项。
 - **三条红线**：不改预期凑通过；只改定位/断言行；缺数据/缺会话不自动重写。
 - **分类+重写一次完成**：`build_feedbacks.py` 已对每个失败用例自动预分类（`auto_class`/`confidence`/`needs_screenshot`，见 `fix_feedbacks.md` 头部统计），子会话**不要**把分类和重写拆成两个阶段——高置信度项直接按 `auto_class` 处置，仅低置信度项复核（`needs_screenshot == false` 一律不看截图）。
@@ -202,6 +210,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
   分组参照 `fix_feedbacks.md` 头部预分类统计（同类归同一分片）；仅低置信度且 `needs_screenshot == true` 才看截图。
 - 对被重写的用例用 run_collect **一次**定向重跑：
   `--filter {case_id1},{case_id2},... --keep-results --merge-results`（`--filter` 支持逗号分隔多前缀，避免多次启动进程；`--merge-results` 保证重跑后报告仍含全部用例）。
+- **最终 `测试报告.md`（强制交付）**：步骤5 结束（通过 / 达到 `--max-rounds` / 转人工）后，批次根目录必须存在一份**完整**的 `测试报告.md`——含全部用例的最新状态，作为流水线最终交付物；重跑一律带 `--merge-results`，禁止只输出被重跑子集的报告。
 
 ## 流程控制规则
 
@@ -210,6 +219,7 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 3. **失败处理**：某步失败或输出未生成，停止流水线并向用户报告错误。
 4. **进度报告**：每步开始前 `正在执行步骤 n/5：{步骤名}...`；步骤3/步骤5 内部阶段性进度也回传。
 5. **人工确认点**：
+   - 直接入口（跳过步骤1/2）：先向用户确认 `BASE_URL`；用例不含 route_path 时，按「所属模块」归组向用户确认路由（探索记录候选仅作建议值，经确认后采用；不提供则置空），全部确认完成前不得启动 testid 采集与脚本生成。
    - 步骤2 完成后：展示用例统计，确认后再生成脚本。
    - 步骤3 前：确认 `BASE_URL` 与登录态来源（复用 `auth_state.json` / 填账号走 `login()`）—— 两者是步骤3 生成脚本与 testid 采集的硬前置，须先确认，避免采集降级。
 6. **闭环终止**：步骤5 达到 `--max-rounds`，或剩余失败仅为 `real_bug`/`missing_data`/`env`，即停止自动重写，剩余项转人工。
@@ -228,8 +238,11 @@ python3 .claude/skills/test-script-fix-loop/build_feedbacks.py \
 - [ ] 五个步骤已按子会话 prompt 模板分别配置，各含 技能文件/输入/参考/输出
 - [ ] 步骤2 自动指向步骤1 的 `{日期_时间}` 目录，不让用户重选
 - [ ] 步骤3 需向用户索要 BASE_URL；登录态按「登录态统一约定」落位到 `{批次目录}/.auth/auth_state.json`
+- [ ] 直接入口（用户提供用例跳过步骤1/2）时：已先确认 BASE_URL；route_path 为空的用例已按模块归组向用户确认（不提供则置空），确认完成前未启动 testid 采集
 - [ ] 步骤3 testid 采集用**批量模式**（`--route-paths` + `--out-dir`，一次登录遍历全部未命中页面）；用例 ≥ 8 条时按页面/模块**并行分片**，page 片段先统一产出、steps 片段并行，仅回传进度不阻断
+- [ ] 步骤3 生成脚本按**模块名原文子目录**存放（spec.json 带 `module`，渲染到 `{批次}/{模块名}/{case_id}.py`）；步骤4/5 工具递归发现脚本，报告/截图/results.json 仍在批次根目录
 - [ ] 步骤4 明确带 `--keep-results --merge-results` 保留 results.json 并保证报告完整
 - [ ] 步骤5 按 `--max-rounds` 自动迭代，遵守三条红线；失败用例 ≥ 10 条时并行分片分类/重写，重跑用 `--filter` 逗号多值一次完成
+- [ ] 最终交付包含**完整的 `测试报告.md`**（步骤4 生成，步骤5 每轮重跑后经 `--merge-results` 更新），含批次全部用例的最终结果，非仅被重跑子集
 - [ ] 渐进式读取约定写入各步与流程控制（长文件分批/分块、步骤3 并行分片）
 - [ ] 流程控制规则齐全：顺序执行/检查点/失败处理/进度报告/人工确认点/闭环终止/完成报告

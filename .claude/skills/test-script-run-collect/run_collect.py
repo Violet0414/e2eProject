@@ -10,6 +10,9 @@
       [--headless] [--filter TC-PERSON,TC-BURIAL] [--max-retry 1] [--keep-results] [--no-live]
   （--filter 支持逗号分隔多前缀，一次跑多个用例组）
 
+脚本支持按模块子目录存放（如 {批次}/{模块名}/{case_id}.py），本脚本递归发现；
+测试报告.md / results.json / screenshots/ 仍集中生成在批次根目录。
+
 退出码：0 = 完成（可能含失败用例）；1 = 参数错误 / 目录无效。
 """
 import argparse
@@ -51,6 +54,8 @@ def parse_args():
                    help="关闭共享浏览器模式，退回逐脚本独立浏览器+子进程（兼容旧行为）")
     p.add_argument("--merge-results", action="store_true",
                    help="合并已有 results.json 历史结果再生成报告（配合 --filter 使用，避免报告只含部分用例）")
+    p.add_argument("--case-doc", default="",
+                   help="测试用例.md 路径；缺省按批次日期/最新批次自动匹配 output/*/测试用例.md，找不到时降级按用例名称拼接")
     return p.parse_args()
 
 
@@ -71,10 +76,28 @@ def resolve_script_dir(path: str) -> Path:
 
 
 # =============================================================================
-# ② 脚本元数据提取（route / base_url / case_id）
+# ② 脚本发现（递归，按模块子目录）与元数据提取（route / base_url / case_id）
 # =============================================================================
 _ASSIGN_RE = re.compile(r'^\s*ROUTE_PATH\s*=\s*["\']([^"\']+)["\']', re.M)
 _BASEURL_RE = re.compile(r'^\s*BASE_URL\s*=\s*["\']([^"\']+)["\']', re.M)
+
+# 递归发现脚本时排除的非用例目录（片段/缓存/登录态/产物目录等）
+_EXCLUDED_DIRS = {"_specs", "_pages", "screenshots", ".auth", ".testid_cache", "fix_loop_work", "__pycache__"}
+
+
+def iter_scripts(script_dir: Path) -> list:
+    """递归发现批次目录下全部自包含测试脚本，返回相对 posix 路径字符串列表。
+    兼容旧的平铺结构；排除非用例目录与隐藏目录、下划线开头文件。"""
+    out = []
+    for f in sorted(script_dir.rglob("*.py")):
+        if f.name.startswith("_"):
+            continue
+        rel = f.relative_to(script_dir)
+        if any(part in _EXCLUDED_DIRS or part.startswith(".") or part.startswith("_")
+               for part in rel.parts[:-1]):
+            continue
+        out.append(rel.as_posix())
+    return out
 
 
 def extract_script_meta(py_path: Path) -> dict:
@@ -84,7 +107,9 @@ def extract_script_meta(py_path: Path) -> dict:
     route = m.group(1) if m else ""
     m = _BASEURL_RE.search(text)
     base = m.group(1) if m else ""
-    return {"id": py_path.stem, "route": route, "base_url": base}
+    parent = py_path.parent.as_posix()
+    return {"id": py_path.stem, "route": route, "base_url": base,
+            "module": parent if parent not in (".", "") else ""}
 
 
 # =============================================================================
@@ -133,6 +158,7 @@ def collect(full_meta: dict, o) -> dict:
     return {"id": cid, "name": o.get("name") or cid, "status": o.get("status", "failed"),
             "error": o.get("error", ""), "screenshot": o.get("screenshot", ""),
             "timestamp": o.get("timestamp", datetime.now().isoformat()),
+            "module": full_meta.get("module", ""),
             "route": full_meta.get("route", ""), "base_url": full_meta.get("base_url", "")}
 
 
@@ -281,7 +307,7 @@ def main() -> int:
     os.chdir(script_dir)
     os.makedirs("screenshots", exist_ok=True)
 
-    all_py = sorted(f for f in os.listdir(".") if f.endswith(".py") and not f.startswith("_"))
+    all_py = iter_scripts(Path("."))
     if args.filter:
         prefixes = [p.strip() for p in args.filter.split(",") if p.strip()]
         if not prefixes:
@@ -336,7 +362,7 @@ def main() -> int:
         with open(out_path, "w", encoding="utf-8") as f:
             for r in ordered:
                 # 只保留核心字段，去掉内部用的 route/base_url/retried_passed 等
-                clean = {k: r.get(k, "") for k in ("id", "name", "status", "error", "screenshot", "timestamp")}
+                clean = {k: r.get(k, "") for k in ("id", "name", "status", "error", "screenshot", "timestamp", "module")}
                 f.write(json.dumps(clean, ensure_ascii=False) + "\n")
         print(f"[merge] 已回写去重后的 results.json: {out_path}（{len(ordered)} 条）")
 
@@ -465,8 +491,141 @@ def _merge_existing_results(script_dir: Path, current: dict) -> dict:
     return merged
 
 
+# =============================================================================
+# ⑤ 报告 bug 字段（bug标题/重现步骤/结果/预期/严重程度/优先级）
+#    内容优先取自测试用例.md（按用例编号反查），找不到时降级按用例名称拼接
+#    规则与 bug-to-zentao/build_bug_payload.py 保持一致
+# =============================================================================
+SEV1_PATTERNS = [
+    r"提交失败", r"保存失败", r"新增失败", r"编辑失败", r"删除失败",
+    r"导入失败", r"导出失败", r"流程不通", r"数据丢失", r"统计数据?错误",
+    r"列表没有显示", r"没有显示出", r"页面报错", r"系统报错", r"闪退",
+    r"权限类", r"未授权.*(仍|未.*(显示|隐藏))",
+]
+SEV3_PATTERNS = [
+    r"格式", r"长度", r"提示文案", r"提示消息", r"展示效果", r"样式",
+    r"性能", r"速度", r"对齐", r"间距", r"文案",
+]
+
+
+def _find_case_doc(script_dir: Path, explicit: str):
+    if explicit:
+        p = Path(os.path.expanduser(explicit))
+        if p.exists():
+            return p
+        print(f"  ⚠️ --case-doc 不存在，降级按用例名称拼接 bug 字段: {p}")
+        return None
+    m = re.search(r"(\d{4}-\d{2}-\d{2})$", script_dir.name)
+    if m:
+        p = GENERATED_ROOT.parent / "output" / m.group(1) / "测试用例.md"
+        if p.exists():
+            return p
+    out_root = GENERATED_ROOT.parent / "output"
+    if out_root.exists():
+        cands = sorted(out_root.glob("*/测试用例.md"), key=lambda p: p.stat().st_mtime)
+        if cands:
+            return cands[-1]
+    return None
+
+
+def _load_case_doc_for(script_dir: Path, explicit: str) -> dict:
+    path = _find_case_doc(script_dir, explicit)
+    if not path:
+        print("  ℹ️ 未找到测试用例.md，报告 bug 字段按用例名称规则拼接")
+        return {}
+    rows = {}
+    header = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if "用例编号" in cells:
+            header = cells
+            continue
+        if header is None or re.fullmatch(r"[\s|:\-]+", line):
+            continue
+        row = dict(zip(header, cells))
+        cid = row.get("用例编号", "")
+        if cid:
+            rows[cid] = row
+    print(f"  📄 用例文档: {path}（{len(rows)} 条）")
+    return rows
+
+
+def _md_cell(text: str, limit: int = 0) -> str:
+    text = (text or "").replace("\n", "<br>").replace("|", "\\|").strip()
+    if limit and len(text) > limit:
+        text = text[:limit] + "…"
+    return text or "-"
+
+
+def _bug_title(name: str, module: str) -> str:
+    if name.startswith("【"):
+        return name
+    if module:
+        return f"【{module.split('-')[-1]}】{name}"
+    return name
+
+
+def _bug_expect(name: str, row: dict) -> str:
+    if row.get("预期结果"):
+        return row["预期结果"]
+    m = re.search(r"验证(.+)", name)
+    exp = m.group(1) if m else name
+    return re.sub(r"（[^）]*(缺陷|场景)[^）]*）", "", exp).strip()
+
+
+def _bug_steps(module: str, name: str, row: dict) -> str:
+    if row.get("步骤"):
+        return row["步骤"]
+    m = re.match(r"【([^】]+)】", name)
+    loc = module or (m.group(1) if m else "目标模块")
+    return f"1. 进入 {loc} 对应页面<br>2. 执行用例操作：{_bug_expect(name, row)}"
+
+
+def _assert_message(err: str) -> str:
+    m = re.findall(r"(?:AssertionError|Exception|Error):\s*(.+)", err or "")
+    if m:
+        return m[-1].strip()
+    lines = [l.strip() for l in (err or "").strip().splitlines() if l.strip()]
+    return lines[-1] if lines else (err or "").strip()
+
+
+def _bug_severity(name: str, err: str, row: dict) -> int:
+    pri = (row.get("优先级") or "").strip()
+    if pri.startswith("高"):
+        return 1
+    if pri.startswith("中"):
+        return 2
+    if pri.startswith("低"):
+        return 3
+    text = f"{name}\n{err}"
+    for p in SEV1_PATTERNS:
+        if re.search(p, text):
+            return 1
+    for p in SEV3_PATTERNS:
+        if re.search(p, text):
+            return 3
+    return 2
+
+
+def _bug_cells(name: str, module: str, err: str, row: dict) -> list:
+    sev = _bug_severity(name, err, row)
+    actual = _assert_message(err) or "见失败原因"
+    return [
+        _md_cell(_bug_title(name, module)),
+        _md_cell(_bug_steps(module, name, row)),
+        _md_cell(actual, limit=200),
+        _md_cell(_bug_expect(name, row)),
+        str(sev),
+        str(sev),  # pri=sev，与 bug-to-zentao 规范一致
+    ]
+
+
 def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> None:
     ordered = sorted(results.values(), key=lambda r: r["id"])
+    case_doc = _load_case_doc_for(script_dir, getattr(args, "case_doc", ""))
     report = []
     report.append("# 测试报告")
     report.append("")
@@ -485,8 +644,8 @@ def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> 
 
     report.append("## 执行结果")
     report.append("")
-    report.append("| 用例ID | 状态 | 名称 | 失败原因 | 截图 |")
-    report.append("|--------|------|------|----------|------|")
+    report.append("| 用例ID | 模块 | 状态 | 名称 | 失败原因 | bug标题 | 重现步骤 | 结果 | 预期 | 严重程度 | 优先级 | 截图 |")
+    report.append("|--------|------|------|------|----------|---------|----------|------|------|----------|--------|------|")
     for r in ordered:
         cid = r["id"]
         status = r.get("status", "failed")
@@ -494,6 +653,7 @@ def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> 
             status_cn = "通过(重跑)" if r.get("retried_passed") else "通过"
         else:
             status_cn = "失败"
+        module = r.get("module", "") or "-"
         name = r.get("name") or cid
         err = r.get("error", "") or ""
         err_short = ""
@@ -503,7 +663,15 @@ def _write_report(script_dir: Path, results: dict, failed_cases: list, args) -> 
             err_short = err_short.replace("|", "\\|")[:120]
         shot = r.get("screenshot", "") or ""
         shot_md = f"[{os.path.basename(shot)}]({shot})" if shot else ""
-        report.append(f"| {cid} | {status_cn} | {name} | {err_short} | {shot_md} |")
+        if status == "passed":
+            bug_cells = ["-"] * 6
+        else:
+            row = case_doc.get(cid, {})
+            bug_cells = _bug_cells(name, module, err, row)
+        report.append(
+            f"| {cid} | {module} | {status_cn} | {name} | {err_short} | "
+            + " | ".join(bug_cells) + f" | {shot_md} |"
+        )
     report.append("")
 
     if failed_cases:
@@ -533,14 +701,13 @@ def _cleanup(script_dir: Path) -> None:
         if p.exists():
             p.unlink()
             print(f"  🧹 清理 {name}")
-    for pat in ("*.log",):
-        for p in script_dir.glob(pat):
-            p.unlink()
-            print(f"  🧹 清理 {p.name}")
-    pycache = script_dir / "__pycache__"
-    if pycache.is_dir():
-        shutil.rmtree(pycache)
-        print("  🧹 清理 __pycache__")
+    for p in script_dir.rglob("*.log"):
+        p.unlink()
+        print(f"  🧹 清理 {p.relative_to(script_dir)}")
+    for pycache in script_dir.rglob("__pycache__"):
+        if pycache.is_dir():
+            shutil.rmtree(pycache)
+            print(f"  🧹 清理 {pycache.relative_to(script_dir)}")
 
 
 if __name__ == "__main__":
