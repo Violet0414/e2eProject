@@ -1,0 +1,89 @@
+# flow_helpers.py.snippet —— dataflow 脚本新增辅助函数片段
+#
+# 供 dataflow-script-generate 生成脚本时**复制进脚本的辅助层**（② 辅助层 HELPER），
+# 与 template.py.tpl 既有辅助（record_result/quick_load/login/tid/check/expect_toast 等）共存。
+# 以下均为参考实现，生成时按实际字段类型（input/text）调整调用方式。
+
+import re
+
+# =============================================================================
+# 变量上下文 CTX —— "填写数据"步骤执行后捕获 字段->值，供后续步骤引用与一致性比对
+# =============================================================================
+CTX = {}          # {字段名: 填报值}
+CURRENT_STEP = ""  # 当前执行步骤标记（如 "步骤5"），main() 捕获异常时注入 error 前缀，供报告定位
+
+
+def capture(fields: dict) -> None:
+    """把"填写数据"步骤的字段->值捕获进全局上下文 CTX，并打印供日志追踪。"""
+    CTX.update(fields)
+    print(f"  [CTX] 已捕获: {fields}")
+
+
+def resolve(text: str) -> str:
+    """解析 ${字段名} 占位符为 CTX 中的已捕获值；未注册的占位符直接报错（防手误静默填错）。"""
+    def _sub(m):
+        key = m.group(1)
+        if key not in CTX:
+            raise AssertionError(f"占位符 ${{{key}}} 未在先前步骤中捕获，CTX={list(CTX)}")
+        return CTX[key]
+    return re.sub(r"\$\{([^}]+)\}", _sub, str(text))
+
+
+def assert_dataflow_consistent(page, checks: list, timeout: int = 5000) -> None:
+    """跨步骤数据一致性断言（dataflow 核心断言）。
+
+    checks: [(字段名, locator, mode), ...]
+      - 字段名  必须与某次"填写数据"步骤中的字段名原文一致（作为 CTX 键）
+      - locator 定位器（通常为 tid()/语义定位器的返回值），指向页面展示该字段的元素
+      - mode    "input"=输入类控件（input_value()），"text"=展示文本（inner_text()）
+                依 testids.json 元素类型选择，勿对输入框用 inner_text()
+
+    行为：逐字段取实际值与 CTX 期望值比对，**收集全部差异后一次性 raise**，
+    error 文本为字段级明细（每行 `字段=期望值 vs 实际值`），随 traceback 进
+    TEST_RESULT_JSON 的 error 字段，落入测试报告"失败原因"列与 bug"结果"字段。
+    """
+    diffs = []
+    for field, locator, mode in checks:
+        expect = CTX.get(field)
+        if expect is None:
+            raise AssertionError(f"字段 {field!r} 不在 CTX 中（未由'填写数据'步骤捕获），无法比对")
+        el = page.locator(locator) if isinstance(locator, str) else locator
+        el.wait_for(timeout=timeout)
+        actual = el.input_value() if mode == "input" else el.inner_text()
+        actual = actual.strip()
+        if str(expect) != actual:
+            diffs.append(f"  {field} = 期望 {expect!r} vs 实际 {actual!r}")
+        else:
+            print(f"  [OK] 字段一致: {field} = {actual}")
+    if diffs:
+        raise AssertionError(
+            "数据流转不一致（字段级明细）：\n" + "\n".join(diffs)
+        )
+
+
+# 用法示例（用例层）：**必须在 run_case 外层包装异常注入**，而非只在 main() 注入——
+# run_collect.py 共享浏览器模式是直接调用模块的 run_case(page)（不走脚本 main()），
+# 若仅在 main() 注入，批量运行时报告将丢失 [步骤N] 定位。推荐结构：
+#
+#   def run_case(page) -> None:
+#       try:
+#           _run_case_impl(page)
+#       except Exception as e:
+#           # 把当前步骤标记拼进异常消息后原类型重抛，独立运行与共享模式均可定位
+#           raise type(e)(f"[{CURRENT_STEP}] {e}") from e
+#
+#   def _run_case_impl(page) -> None:
+#       global CURRENT_STEP
+#       CURRENT_STEP = "步骤2"
+#       form = { "姓名": "张三", "经办人": "李四" }
+#       pg.name().fill(form["姓名"]); pg.handler().fill(form["经办人"])
+#       capture(form)
+#       CURRENT_STEP = "步骤5"
+#       assert_dataflow_consistent(page, [
+#           ("姓名",   pg.detail_name(),   "text"),
+#           ("经办人", pg.detail_handler(), "text"),
+#       ])
+#
+# main() 捕获异常时**不再重复注入**前缀（run_case 包装已加），不截图：
+#   except Exception:
+#       record_result("failed", error=traceback.format_exc(), screenshot="")
